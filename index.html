@@ -1,0 +1,1832 @@
+<!DOCTYPE html>
+<script type="application/json" id="cowork-artifact-meta">
+{
+  "name": "Connect Atividades Jira",
+  "schemaVersion": 1,
+  "description": "Connect Atividades Jira — painel gerencial do Jira (Connect-IN, workspace connectindigital). Réplica do layout do usuário com dados ao vivo do Jira a cada abertura. Botão flutuante gera o e-mail da Visão Executiva (rascunho no Gmail) para Karen e Fernando.",
+  "mcpTools": [
+    "mcp__23f5ac1f-1a30-48e1-a405-eb8ad82547cc__searchJiraIssuesUsingJql",
+    "mcp__deffdf7e-01b7-4d31-9e1e-a4ad1e2b3adf__create_draft"
+  ],
+  "mcpServerNames": [
+    "Atlassian",
+    "Gmail"
+  ]
+}
+</script>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Connect-IN · Painel Gerencial Jira</title>
+<style>
+
+:root{
+  --brand:#FCD013;          /* amarelo MIV  */
+  --brand-deep:#E0B400;
+  --ink:#1E1E1E;            /* escuro MIV   */
+  --ink-soft:#33312E;
+  --gray:#989898;           /* cinza MIV    */
+  --bg:#F4F4F1;
+  --card:#FFFFFF;
+  --line:#E8E7E2;
+  --line-strong:#D8D7D0;
+  --txt:#26241F;
+  --txt-soft:#6E6B63;
+
+  /* semáforo de saúde */
+  --ok:#2E9E5B; --ok-bg:#E7F4ED;
+  --warn:#E8920C; --warn-bg:#FCF1DF;
+  --crit:#D64533; --crit-bg:#FBE9E6;
+
+  /* status (categórico, lógico) */
+  --s-pend:#8A94A6;  --s-pend-bg:#EEF0F4;
+  --s-prog:#2F7FE0;  --s-prog-bg:#E6EFFB;
+  --s-aprov:#8B5CF6; --s-aprov-bg:#F0EBFD;  /* fila Karen */
+  --s-done:#2E9E5B;  --s-done-bg:#E7F4ED;
+  --s-back:#B6B2A8;  --s-back-bg:#F0EFEA;
+  --s-ok:#2E9E5B; --s-done-soft:#BFE3CD; --s-prog-soft:#BcD8F4; --s-aprov-soft:#D9CBF7;
+
+  /* prioridade */
+  --p-highest:#D64533; --p-high:#E8920C; --p-medium:#5B6B8C; --p-low:#A8A49B;
+
+  --radius:14px; --radius-sm:9px;
+  --shadow:0 1px 2px rgba(30,30,30,.04),0 6px 22px rgba(30,30,30,.06);
+  --shadow-lg:0 10px 40px rgba(30,30,30,.12);
+}
+
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,system-ui,sans-serif;
+  background:var(--bg); color:var(--txt);
+  font-size:14px; line-height:1.45; -webkit-font-smoothing:antialiased;
+  background-image:radial-gradient(circle at 1px 1px, rgba(30,30,30,.035) 1px, transparent 0);
+  background-size:26px 26px;
+}
+.tab-nums{font-variant-numeric:tabular-nums}
+
+/* ---------- HEADER ---------- */
+header{
+  position:static;
+  background:var(--ink); color:#fff;
+  border-bottom:3px solid var(--brand);
+}
+.head-top{max-width:1480px;margin:0 auto;padding:14px 26px;display:flex;align-items:center;gap:18px;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:13px;min-width:max-content}
+.penrose{width:34px;height:34px;flex-shrink:0}
+.brand-name{font-weight:800;font-size:17px;letter-spacing:-.3px;line-height:1}
+.brand-name span{color:var(--brand)}
+.brand-sub{font-size:10.5px;color:#9b988f;letter-spacing:1.6px;text-transform:uppercase;margin-top:3px}
+.head-spacer{flex:1}
+.snap{font-size:11px;color:#b8b5ac;text-align:right;line-height:1.5}
+.snap b{color:var(--brand);font-weight:600}
+
+/* filtros globais */
+.gfilters{max-width:1480px;margin:0 auto;padding:0 26px 14px;display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap}
+.gf{display:flex;flex-direction:column;gap:4px}
+.gf label{font-size:10px;text-transform:uppercase;letter-spacing:.8px;color:#9b988f;font-weight:600;padding-left:2px}
+.gf select{
+  appearance:none;background:#2a2926 url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23FCD013' stroke-width='3'><path d='M6 9l6 6 6-6'/></svg>") no-repeat right 11px center;
+  color:#fff;border:1px solid #403e39;border-radius:9px;padding:9px 32px 9px 12px;font-family:inherit;font-size:13px;font-weight:500;
+  min-width:190px;cursor:pointer;transition:.15s;
+}
+.gf select:hover{border-color:var(--brand)}
+.gf select:focus{outline:none;border-color:var(--brand);box-shadow:0 0 0 3px rgba(252,208,19,.18)}
+.btn-clear{background:transparent;border:1px solid #403e39;color:#cfccc3;border-radius:9px;padding:9px 14px;font-family:inherit;font-size:12.5px;font-weight:500;cursor:pointer;transition:.15s;display:flex;align-items:center;gap:6px}
+.btn-clear:hover{border-color:var(--crit);color:#fff;background:rgba(214,69,51,.15)}
+.scope-pill{margin-left:auto;font-size:11.5px;color:#b8b5ac;background:#2a2926;border:1px solid #403e39;border-radius:20px;padding:7px 14px;display:flex;align-items:center;gap:7px}
+.scope-pill b{color:var(--brand);font-weight:600}
+
+/* ---------- TABS ---------- */
+nav.tabs{max-width:1480px;margin:0 auto;padding:0 26px;display:flex;gap:4px;flex-wrap:wrap}
+.tab{
+  background:transparent;border:none;color:#b8b5ac;font-family:inherit;font-size:13.5px;font-weight:600;
+  padding:13px 18px 15px;cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-3px;transition:.15s;
+  display:flex;align-items:center;gap:8px;letter-spacing:-.1px;
+}
+.tab:hover{color:#fff}
+.tab.active{color:#fff;border-bottom-color:var(--brand)}
+.tab .emo{font-size:16px}
+
+/* ---------- LAYOUT ---------- */
+main{max-width:1480px;margin:0 auto;padding:26px}
+.view{display:none;animation:fade .35s ease}
+.view.active{display:block}
+@keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+
+.section-title{display:flex;align-items:center;gap:10px;font-size:15px;font-weight:700;color:var(--ink);margin:6px 0 14px;letter-spacing:-.2px}
+.section-title .emo{font-size:18px}
+.section-title .hint{font-size:11.5px;font-weight:500;color:var(--txt-soft);margin-left:auto;letter-spacing:0}
+
+.grid{display:grid;gap:16px}
+.g-kpi{grid-template-columns:repeat(auto-fit,minmax(180px,1fr))}
+.g-2{grid-template-columns:repeat(2,1fr)}
+.g-charts{grid-template-columns:repeat(auto-fit,minmax(340px,1fr))}
+@media(max-width:900px){.g-2{grid-template-columns:1fr}}
+
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow)}
+.card-pad{padding:18px 20px}
+.card-h{display:flex;align-items:center;gap:9px;font-size:13px;font-weight:700;color:var(--ink);padding:16px 20px 0;letter-spacing:-.1px}
+.card-h .emo{font-size:15px}
+.card-h .sub{font-size:10.5px;font-weight:500;color:var(--txt-soft);margin-left:auto;letter-spacing:0}
+
+/* ---------- KPI ---------- */
+.kpi{position:relative;overflow:hidden;cursor:default}
+.kpi.clickable{cursor:pointer;transition:.18s}
+.kpi.clickable:hover{transform:translateY(-2px);box-shadow:var(--shadow-lg)}
+.kpi .bar{position:absolute;left:0;top:0;bottom:0;width:5px;background:var(--gray)}
+.kpi-lbl{font-size:11px;font-weight:600;color:var(--txt-soft);text-transform:uppercase;letter-spacing:.6px;display:flex;align-items:center;gap:7px}
+.kpi-val{font-size:34px;font-weight:800;color:var(--ink);letter-spacing:-1.4px;margin:7px 0 1px;line-height:1}
+.kpi-val small{font-size:14px;font-weight:600;color:var(--txt-soft);letter-spacing:0}
+.kpi-foot{font-size:11.5px;color:var(--txt-soft);font-weight:500}
+.kpi.k-crit .bar{background:var(--crit)} .kpi.k-crit .kpi-val{color:var(--crit)}
+.kpi.k-warn .bar{background:var(--warn)}
+.kpi.k-ok .bar{background:var(--ok)}
+.kpi.k-prog .bar{background:var(--s-prog)}
+.kpi.k-aprov .bar{background:var(--s-aprov)}
+.kpi.k-brand .bar{background:var(--brand)}
+
+/* ---------- chips / badges ---------- */
+.badge{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;padding:3px 9px;border-radius:20px;white-space:nowrap;line-height:1.4}
+.dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.b-pend{background:var(--s-pend-bg);color:#5a6273} .b-pend .dot{background:var(--s-pend)}
+.b-prog{background:var(--s-prog-bg);color:#1d5bb8} .b-prog .dot{background:var(--s-prog)}
+.b-aprov{background:var(--s-aprov-bg);color:#6d3fc7} .b-aprov .dot{background:var(--s-aprov)}
+.b-done{background:var(--s-done-bg);color:#1f7a44} .b-done .dot{background:var(--s-done)}
+.b-back{background:var(--s-back-bg);color:#76726a} .b-back .dot{background:var(--s-back)}
+.b-late{background:var(--crit-bg);color:#b5331f} .b-late .dot{background:var(--crit)}
+
+.pchip{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600}
+.pchip .pdot{width:8px;height:8px;border-radius:2px;transform:rotate(45deg)}
+.p-highest .pdot{background:var(--p-highest)} .p-highest{color:var(--p-highest)}
+.p-high .pdot{background:var(--p-high)} .p-high{color:#c47a08}
+.p-medium .pdot{background:var(--p-medium)} .p-medium{color:var(--p-medium)}
+.p-low .pdot{background:var(--p-low)} .p-low{color:var(--gray)}
+
+/* ---------- insights ---------- */
+.insight{display:flex;gap:12px;padding:13px 15px;border-radius:var(--radius-sm);border:1px solid var(--line);background:#fafaf8;margin-bottom:10px;align-items:flex-start}
+.insight:last-child{margin-bottom:0}
+.insight .ico{font-size:17px;line-height:1.3;flex-shrink:0}
+.insight.i-crit{background:var(--crit-bg);border-color:#f3cfc9}
+.insight.i-warn{background:var(--warn-bg);border-color:#f2dcb4}
+.insight.i-ok{background:var(--ok-bg);border-color:#c8e6d5}
+.insight.i-info{background:#eef0f4;border-color:#dde1e8}
+.insight .txt{font-size:12.8px;line-height:1.5;color:var(--ink-soft)}
+.insight .txt b{font-weight:700}
+.insight .txt .mtr{font-weight:700}
+
+/* ---------- charts (SVG) ---------- */
+.chart-wrap{padding:8px 18px 18px}
+.barrow{display:flex;align-items:center;gap:10px;margin:7px 0}
+.barrow .nm{font-size:12px;font-weight:600;color:var(--ink-soft);width:104px;flex-shrink:0;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.barrow .track{flex:1;background:#f0efea;border-radius:6px;height:22px;position:relative;overflow:hidden}
+.barrow .fill{height:100%;border-radius:6px;display:flex;align-items:center;justify-content:flex-end;padding-right:8px;color:#fff;font-size:11px;font-weight:700;min-width:24px;transition:width .6s cubic-bezier(.22,1,.36,1)}
+.barrow .fill.dark{color:#fff}
+.legend{display:flex;flex-wrap:wrap;gap:11px;padding:0 20px 16px}
+.legend .li{display:flex;align-items:center;gap:6px;font-size:11.5px;color:var(--txt-soft);font-weight:500}
+.legend .sw{width:11px;height:11px;border-radius:3px}
+
+.donut-wrap{display:flex;align-items:center;gap:18px;padding:6px 20px 18px;flex-wrap:wrap}
+.donut-legend{flex:1;min-width:140px;display:flex;flex-direction:column;gap:8px}
+.donut-legend .li{display:flex;align-items:center;gap:9px;font-size:12px}
+.donut-legend .li .sw{width:11px;height:11px;border-radius:3px;flex-shrink:0}
+.donut-legend .li .nm{color:var(--ink-soft);font-weight:600;flex:1}
+.donut-legend .li .vl{font-weight:700;color:var(--ink);font-variant-numeric:tabular-nums}
+.donut-legend .li .pc{color:var(--txt-soft);font-size:10.5px;width:38px;text-align:right}
+
+.col-chart{display:flex;align-items:flex-end;gap:var(--gap,10px);height:180px;padding:18px 20px 8px;position:relative}
+.col{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:6px;height:100%}
+.col .cbar{width:100%;max-width:46px;background:var(--s-prog);border-radius:6px 6px 0 0;position:relative;transition:height .6s cubic-bezier(.22,1,.36,1);min-height:3px}
+.col .cval{font-size:11px;font-weight:700;color:var(--ink)}
+.col .clbl{font-size:10px;color:var(--txt-soft);font-weight:600;text-align:center;line-height:1.25}
+.col-x{display:flex;gap:var(--gap,10px);padding:0 20px 16px}
+.col-x span{flex:1;text-align:center;font-size:10px;color:var(--txt-soft);font-weight:600}
+.col-chart .col-line{position:absolute;top:18px;left:20px;right:20px;bottom:8px;width:calc(100% - 40px);height:calc(100% - 26px);pointer-events:none;overflow:visible}
+.granbar{display:flex;gap:7px;align-items:center;flex-wrap:wrap;padding:14px 16px 2px}
+.granbar .gl{font-size:11px;font-weight:600;color:var(--txt-soft);text-transform:uppercase;letter-spacing:.5px;margin-right:2px}
+.granbar button{font:inherit;font-size:11.5px;font-weight:600;color:var(--txt-soft);background:var(--bg);border:1px solid var(--line-strong);border-radius:999px;padding:5px 13px;cursor:pointer;transition:all .15s}
+.granbar button:hover{border-color:var(--brand);color:var(--ink)}
+.granbar button.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+.segbar{display:flex;gap:7px;align-items:center;flex-wrap:wrap;padding:0 20px 4px}
+.segbar button{font:inherit;font-size:11.5px;font-weight:600;color:var(--txt-soft);background:var(--bg);border:1px solid var(--line-strong);border-radius:999px;padding:5px 12px;cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;gap:6px}
+.segbar button:hover{border-color:var(--s-aprov);color:var(--ink)}
+.segbar button.on{background:var(--s-aprov);color:#fff;border-color:var(--s-aprov)}
+.segbar button .n{font-variant-numeric:tabular-nums;font-size:10.5px;background:rgba(0,0,0,.08);border-radius:999px;padding:1px 7px;font-weight:700}
+.segbar button.on .n{background:rgba(255,255,255,.25)}
+.segbar button.crit{border-color:var(--crit);color:var(--crit)}
+.segbar button.crit.on{background:var(--crit);color:#fff;border-color:var(--crit)}
+.loginsights{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;padding:16px}
+@media(max-width:900px){.loginsights{grid-template-columns:repeat(2,1fr)}}
+.lgi{display:flex;gap:10px;align-items:flex-start;background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:11px 12px}
+.lgi-ic{font-size:18px;line-height:1}
+.lgi-v{font-size:20px;font-weight:800;color:var(--ink);line-height:1.1;font-variant-numeric:tabular-nums}
+.lgi-t{font-size:11.5px;color:var(--txt);font-weight:600}
+.lgi-s{font-size:10.5px;color:var(--txt-soft);margin-top:2px}
+.logtable{display:flex;flex-direction:column}
+.logrow{display:grid;grid-template-columns:54px 130px 1fr auto;gap:12px;align-items:center;padding:11px 16px;border-bottom:1px solid var(--line)}
+.logrow:hover{background:var(--bg)}
+.lg-when{font-size:12px;color:var(--txt-soft);text-align:center;font-variant-numeric:tabular-nums}
+.lg-tag{font-size:11px;font-weight:700;padding:4px 9px;border-radius:999px;white-space:nowrap;text-align:center}
+.lg-new{background:#E7F0FB;color:#1F6FD6}
+.lg-done{background:var(--s-done-soft);color:#1C7B45}
+.lg-cmt{background:#F3ECFB;color:#7A4FC0}
+.lg-main{min-width:0;display:flex;flex-direction:column;gap:2px}
+.lg-key{font-weight:700;color:var(--brand-ink,#9A7B00);font-size:12.5px;text-decoration:none}
+.lg-key:hover{text-decoration:underline}
+.lg-title{font-size:12.5px;color:var(--txt);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lg-meta{display:flex;align-items:center;gap:8px;justify-content:flex-end;flex-wrap:wrap}
+.lg-who{font-size:11px;color:var(--txt-soft);white-space:nowrap}
+@media(max-width:760px){.logrow{grid-template-columns:46px 110px 1fr;gap:8px}.lg-meta{grid-column:2/4;justify-content:flex-start}}
+
+/* ---------- calendário ---------- */
+.cal-head{display:flex;align-items:center;justify-content:space-between;padding:6px 4px 14px}
+.cal-nav{display:flex;align-items:center;gap:8px}
+.cal-nav button{background:var(--card);border:1px solid var(--line-strong);width:32px;height:32px;border-radius:8px;cursor:pointer;font-size:15px;color:var(--ink);display:flex;align-items:center;justify-content:center;transition:.15s}
+.cal-nav button:hover{background:var(--ink);color:#fff;border-color:var(--ink)}
+.cal-month{font-size:15px;font-weight:700;color:var(--ink);min-width:170px;text-align:center;text-transform:capitalize}
+.cal-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px}
+.cal-dow{text-align:center;font-size:10px;font-weight:700;color:var(--txt-soft);text-transform:uppercase;letter-spacing:.5px;padding:4px 0}
+.cal-cell{aspect-ratio:1/.82;border:1px solid var(--line);border-radius:9px;padding:7px 8px;background:var(--card);position:relative;cursor:default;transition:.15s;display:flex;flex-direction:column;overflow:hidden}
+.cal-cell.out{background:#f7f6f3;opacity:.5}
+.cal-cell.today{border-color:var(--brand);border-width:2px;box-shadow:0 0 0 3px rgba(252,208,19,.15)}
+.cal-cell.has{cursor:pointer}
+.cal-cell.has:hover{border-color:var(--ink);transform:translateY(-2px);box-shadow:var(--shadow)}
+.cal-cell.sel{background:var(--ink);border-color:var(--ink)}
+.cal-cell.sel .cal-d,.cal-cell.sel .cal-mini b{color:#fff}
+.cal-cell.weekend{background:#faf9f6}
+.cal-d{font-size:13px;font-weight:700;color:var(--ink);font-variant-numeric:tabular-nums}
+.cal-cell.out .cal-d{color:var(--gray)}
+.cal-mini{margin-top:auto;display:flex;flex-direction:column;gap:2px}
+.cal-mini .seg{display:flex;gap:3px;flex-wrap:wrap}
+.cal-cnt{display:inline-flex;align-items:center;gap:3px;font-size:9.5px;font-weight:700;padding:1px 5px;border-radius:10px}
+.cal-cnt.late{background:var(--crit);color:#fff}
+.cal-cnt.due{background:var(--brand);color:var(--ink)}
+.cal-cnt.aprov{background:var(--s-aprov);color:#fff}
+
+/* ---------- listas / tabela ---------- */
+.tasklist{display:flex;flex-direction:column;min-width:0}
+.task{display:flex;align-items:center;gap:12px;padding:11px 14px;border-bottom:1px solid var(--line);cursor:pointer;transition:.12s;text-decoration:none;color:inherit}
+.task:last-child{border-bottom:none}
+.task:hover{background:#faf9f6}
+.task .tk{font-size:11px;font-weight:700;color:var(--s-prog);width:96px;flex-shrink:0;font-variant-numeric:tabular-nums}
+.task .ts{flex:1;font-size:12.7px;color:var(--ink-soft);font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:60px}
+.task .meta{display:flex;align-items:center;gap:8px;flex-shrink:0}
+.task .tp{font-size:11px;color:var(--txt-soft);font-weight:600;white-space:nowrap}
+.task .arr{color:var(--gray);font-size:13px;flex-shrink:0}
+.empty{padding:34px;text-align:center;color:var(--txt-soft);font-size:13px}
+.empty .em{font-size:30px;display:block;margin-bottom:8px;opacity:.7}
+
+.tbl-tools{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:14px}
+.search{flex:1;min-width:200px;position:relative}
+.search input{width:100%;border:1px solid var(--line-strong);border-radius:9px;padding:10px 12px 10px 36px;font-family:inherit;font-size:13px;background:var(--card)}
+.search input:focus{outline:none;border-color:var(--brand);box-shadow:0 0 0 3px rgba(252,208,19,.18)}
+.search .si{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--gray)}
+.fchip{background:var(--card);border:1px solid var(--line-strong);border-radius:20px;padding:7px 14px;font-size:12px;font-weight:600;color:var(--txt-soft);cursor:pointer;transition:.15s;white-space:nowrap;display:flex;align-items:center;gap:6px}
+.fchip:hover{border-color:var(--ink)}
+.fchip.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+.fchip.on.crit{background:var(--crit);border-color:var(--crit)}
+.fsel{background:var(--card);border:1px solid var(--line-strong);border-radius:9px;padding:9px 12px;font-family:inherit;font-size:12.5px;font-weight:500;color:var(--ink);cursor:pointer}
+
+.table{width:100%;border-collapse:collapse;font-size:12.5px}
+.table thead th{position:sticky;top:0;background:#f2f1ec;text-align:left;font-size:10.5px;text-transform:uppercase;letter-spacing:.5px;color:var(--txt-soft);font-weight:700;padding:11px 12px;border-bottom:2px solid var(--line-strong);cursor:pointer;user-select:none;white-space:nowrap;z-index:2}
+.table thead th:hover{color:var(--ink)}
+.table thead th .sortarr{opacity:.4;font-size:9px}
+.table tbody tr{border-bottom:1px solid var(--line);cursor:pointer;transition:.1s}
+.table tbody tr:hover{background:#faf9f6}
+.table td{padding:10px 12px;vertical-align:middle}
+.table td.c-key{font-weight:700;color:var(--s-prog);font-variant-numeric:tabular-nums;white-space:nowrap}
+.table td.c-sum{max-width:340px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink-soft);font-weight:500}
+.table td.c-num{font-variant-numeric:tabular-nums;white-space:nowrap;color:var(--txt-soft)}
+.tbl-scroll{max-height:620px;overflow:auto;border:1px solid var(--line);border-radius:var(--radius);background:var(--card)}
+.tbl-count{font-size:12px;color:var(--txt-soft);font-weight:600;margin-bottom:10px}
+.tbl-count b{color:var(--ink)}
+
+.note{font-size:11.5px;color:var(--txt-soft);line-height:1.5;padding:11px 14px;background:var(--s-aprov-bg);border:1px solid #e2d6fb;border-radius:var(--radius-sm);display:flex;gap:9px;align-items:flex-start;margin-bottom:14px}
+.note .ico{font-size:15px;flex-shrink:0}
+.note b{color:#6d3fc7}
+
+footer{max-width:1480px;margin:10px auto 30px;padding:0 26px;font-size:11px;color:var(--gray);text-align:center;line-height:1.6}
+footer .pen{display:inline-block;vertical-align:middle;margin-right:6px;opacity:.6}
+
+.split{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr);gap:16px}
+.split>*{min-width:0}
+@media(max-width:1000px){.split{grid-template-columns:1fr}}
+.mini-kpi-row{display:flex;gap:10px;flex-wrap:wrap}
+.mini-kpi{flex:1;min-width:120px;background:#fafaf8;border:1px solid var(--line);border-radius:var(--radius-sm);padding:13px 15px}
+.mini-kpi .v{font-size:24px;font-weight:800;color:var(--ink);letter-spacing:-1px;line-height:1}
+.mini-kpi .l{font-size:11px;color:var(--txt-soft);font-weight:600;margin-top:4px}
+
+/* ---------- barra de escopo por status (header) ---------- */
+.scope-bar-wrap{max-width:1480px;margin:0 auto;padding:0 26px 14px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.scope-bar{flex:1;min-width:240px;height:26px;border-radius:8px;overflow:hidden;display:flex;background:#2a2926;border:1px solid #403e39}
+.scope-seg{height:100%;display:flex;align-items:center;justify-content:center;font-size:10.5px;font-weight:700;color:#fff;min-width:0;transition:flex-basis .5s cubic-bezier(.22,1,.36,1);white-space:nowrap;overflow:hidden}
+.scope-seg span{padding:0 5px;text-shadow:0 1px 1px rgba(0,0,0,.3)}
+.scope-leg{display:flex;gap:13px;flex-wrap:wrap}
+.scope-leg .li{display:flex;align-items:center;gap:6px;font-size:11px;color:#cfccc3;font-weight:500;white-space:nowrap}
+.scope-leg .sw{width:10px;height:10px;border-radius:3px;flex-shrink:0}
+.scope-leg .li b{color:#fff;font-weight:700}
+
+/* ---------- task rows: anti overflow lateral + WhatsApp ---------- */
+.task .ts{min-width:0}
+.task .meta{flex-wrap:nowrap}
+.task .asg{font-size:10.5px;color:var(--txt-soft);font-weight:600;white-space:nowrap;max-width:96px;overflow:hidden;text-overflow:ellipsis;display:inline-flex;align-items:center;gap:4px}
+.task .asg .av{width:18px;height:18px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;color:#fff;flex-shrink:0}
+.wa-btn{flex-shrink:0;width:30px;height:30px;border-radius:8px;border:1px solid var(--line-strong);background:var(--card);display:inline-flex;align-items:center;justify-content:center;font-size:15px;cursor:pointer;transition:.15s;text-decoration:none;line-height:1}
+.wa-btn:hover{background:#25D366;border-color:#25D366;transform:translateY(-1px)}
+.espchip{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:600;padding:3px 9px;border-radius:7px;white-space:nowrap;color:#fff;max-width:100%;overflow:hidden;text-overflow:ellipsis}
+.asgcell{display:inline-flex;align-items:center;gap:7px;white-space:nowrap}
+.asgcell .av{width:22px;height:22px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;color:#fff;flex-shrink:0}
+.asgcell .nm{font-weight:600;color:var(--ink-soft)}
+.asgcell.none .nm{color:var(--warn);font-weight:700}
+
+/* ---------- paginação ---------- */
+.pager{display:flex;align-items:center;justify-content:center;gap:10px;padding:13px;border-top:1px solid var(--line)}
+.pager button{background:var(--card);border:1px solid var(--line-strong);border-radius:8px;padding:7px 13px;font-family:inherit;font-size:12px;font-weight:600;color:var(--ink);cursor:pointer;transition:.15s;display:flex;align-items:center;gap:5px}
+.pager button:hover:not(:disabled){background:var(--ink);color:#fff;border-color:var(--ink)}
+.pager button:disabled{opacity:.4;cursor:not-allowed}
+.pager .pinfo{font-size:12px;font-weight:600;color:var(--txt-soft);min-width:120px;text-align:center}
+.pager .pinfo b{color:var(--ink)}
+
+/* ---------- filtros inline (pace) ---------- */
+.inline-filters{display:flex;gap:9px;align-items:center;flex-wrap:wrap;padding:14px 20px 4px}
+.inline-filters .fsel{font-size:12px;padding:8px 11px}
+.inline-filters .lbl{font-size:11px;font-weight:600;color:var(--txt-soft);text-transform:uppercase;letter-spacing:.5px}
+
+/* ---------- quadro Karen ---------- */
+.karen-hero{background:linear-gradient(135deg,#2a1f4d 0%,#3d2b6b 100%);border:1px solid #4a3780;border-radius:var(--radius);padding:20px 22px;color:#fff;margin-bottom:18px;display:flex;gap:18px;align-items:center;flex-wrap:wrap}
+.karen-hero .kh-ico{font-size:38px;line-height:1}
+.karen-hero .kh-txt{flex:1;min-width:200px}
+.karen-hero .kh-txt h3{font-size:16px;font-weight:800;letter-spacing:-.3px;margin-bottom:4px}
+.karen-hero .kh-txt p{font-size:12.5px;color:#d6cdf0;line-height:1.5}
+.karen-hero .kh-big{font-size:44px;font-weight:800;letter-spacing:-2px;line-height:1;color:#fff}
+.karen-hero .kh-big small{font-size:13px;font-weight:600;color:#c4b8ed;letter-spacing:0;display:block;margin-top:3px}
+</style>
+</head>
+<body>
+<header>
+  <div class="head-top">
+    <div class="brand">
+      <svg class="penrose" viewBox="0 0 100 100" fill="none">
+        <polygon points="50,8 92,82 8,82" stroke="#FCD013" stroke-width="9" stroke-linejoin="round"/>
+        <polygon points="50,30 74,72 26,72" stroke="#FCD013" stroke-width="6" stroke-linejoin="round" opacity=".55"/>
+      </svg>
+      <div>
+        <div class="brand-name">Connect-<span>IN</span> · Painel Jira</div>
+        <div class="brand-sub">Visão Gerencial · Operação Digital</div>
+      </div>
+    </div>
+    <div class="head-spacer"></div>
+    <div class="snap">
+      🔄 Dados extraídos do Jira em<br><b id="snapdate">—</b>
+    </div>
+  </div>
+  <div class="gfilters">
+    <div class="gf">
+      <label>👤 Responsável</label>
+      <select id="fResp"></select>
+    </div>
+    <div class="gf">
+      <label>🗂️ Espaço (Cliente)</label>
+      <select id="fEsp"></select>
+    </div>
+    <button class="btn-clear" id="btnClear">✕ Limpar filtros</button>
+    <div class="scope-pill">Escopo ativo: <b id="scopeCount">—</b> atividades</div>
+  </div>
+  <div class="scope-bar-wrap">
+    <div class="scope-bar" id="scopeBar" title="Distribuição das ativas por status no escopo atual"></div>
+    <div class="scope-leg" id="scopeLeg"></div>
+  </div>
+  <nav class="tabs" id="tabs">
+    <button class="tab active" data-v="exec"><span class="emo">📊</span> Visão Executiva</button>
+    <button class="tab" data-v="agenda"><span class="emo">🗓️</span> Agenda</button>
+    <button class="tab" data-v="pace"><span class="emo">⏱️</span> Pace &amp; Fluxo</button>
+    <button class="tab" data-v="karen"><span class="emo">✅</span> Aprovações</button>
+    <button class="tab" data-v="ajustes"><span class="emo">🔧</span> Ajustes</button>
+    <button class="tab" data-v="ativ"><span class="emo">📋</span> Atividades</button>
+    <button class="tab" data-v="log"><span class="emo">🧾</span> Log Cards</button>
+  </nav>
+</header>
+
+<main>
+  <!-- ============ EXECUTIVA ============ -->
+  <section class="view active" id="v-exec">
+    <div class="grid g-kpi" id="execKpis" style="margin-bottom:18px"></div>
+
+    <div class="card" style="margin-bottom:18px">
+      <div class="card-h"><span class="emo">📈</span> Tendências e comparativos <span class="sub" id="trendChartSub">produção, demanda e atrasos mês a mês</span></div>
+      <div class="grid g-kpi" id="trendKpis" style="padding:16px 16px 0"></div>
+      <div class="granbar" id="trendGran">
+        <span class="gl">Visão</span>
+        <button data-g="mes" class="on">Mês</button>
+        <button data-g="quinzena">Quinzena</button>
+        <button data-g="semana">Semana</button>
+        <button data-g="dia">Dia</button>
+      </div>
+      <div id="trendChart" style="padding:8px 12px 0"></div>
+      <div class="card-h" style="padding-top:16px"><span class="emo">⚖️</span> Abertas vs concluídas <span class="sub" id="vazaoSub">vazão e taxa de conclusão por período</span></div>
+      <div id="vazaoChart" style="padding:4px 12px 0"></div>
+      <div class="card-pad" id="trendInsights"></div>
+    </div>
+
+    <div class="split" style="margin-bottom:18px">
+      <div class="card">
+        <div class="card-h"><span class="emo">🧭</span> Leitura executiva &amp; ações sugeridas <span class="sub" id="insScope"></span></div>
+        <div class="card-pad" id="insights"></div>
+      </div>
+      <div class="card">
+        <div class="card-h"><span class="emo">🚦</span> Distribuição por status <span class="sub">ativas no escopo</span></div>
+        <div id="donutStatus"></div>
+      </div>
+    </div>
+
+    <div class="grid g-charts">
+      <div class="card">
+        <div class="card-h"><span class="emo">👥</span> Concentração por responsável <span class="sub">abertos por pessoa</span></div>
+        <div class="chart-wrap" id="barResp"></div>
+      </div>
+      <div class="card">
+        <div class="card-h"><span class="emo">🗂️</span> Concentração por espaço <span class="sub">abertos agora</span></div>
+        <div class="chart-wrap" id="barEsp"></div>
+      </div>
+      <div class="card">
+        <div class="card-h"><span class="emo">🔺</span> Distribuição por prioridade</div>
+        <div id="donutPrio"></div>
+      </div>
+      <div class="card">
+        <div class="card-h"><span class="emo">📚</span> Total já registrado por espaço <span class="sub">abertos + concluídos (histórico)</span></div>
+        <div class="chart-wrap" id="barEspTotal"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ AGENDA ============ -->
+  <section class="view" id="v-agenda">
+    <div class="grid g-kpi" id="agendaKpis" style="margin-bottom:18px"></div>
+
+    <div class="note">
+      <span class="ico">✅</span>
+      <div><b>Aguardando Aprovação</b> é a fila de aprovação, não tarefa atrasada. Esses cards aparecem separados (em lilás) e nunca entram na contagem de atrasos.</div>
+    </div>
+
+    <div class="split">
+      <div class="card card-pad">
+        <div class="cal-head">
+          <div class="section-title" style="margin:0"><span class="emo">🗓️</span> Calendário de prazos</div>
+          <div class="cal-nav">
+            <button id="calPrev">‹</button>
+            <div class="cal-month" id="calMonth">—</div>
+            <button id="calNext">›</button>
+          </div>
+        </div>
+        <div class="cal-grid" id="calDow"></div>
+        <div class="cal-grid" id="calGrid" style="margin-top:6px"></div>
+        <div class="legend" style="padding:16px 0 0">
+          <div class="li"><span class="sw" style="background:var(--brand)"></span> Prazo no dia</div>
+          <div class="li"><span class="sw" style="background:var(--crit)"></span> Atrasado</div>
+          <div class="li"><span class="sw" style="background:#E8833A"></span> Em ajustes</div>
+          <div class="li"><span class="sw" style="background:var(--s-aprov)"></span> Fila de aprovação</div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-h"><span class="emo" id="listEmo">📌</span> <span id="listTitle">Atividades de hoje</span> <span class="sub" id="listCount"></span></div>
+        <div class="tasklist" id="agendaList"></div>
+      </div>
+    </div>
+
+    <div class="grid g-2" style="margin-top:18px">
+      <div class="card">
+        <div class="card-h"><span class="emo">🔴</span> Atrasadas <span class="sub">prazo vencido · exclui fila de aprovação</span></div>
+        <div class="tasklist" id="lateList"></div>
+        <div id="latePager"></div>
+      </div>
+      <div class="card">
+        <div class="card-h"><span class="emo">✅</span> Fila de aprovação <span class="sub">aguardando aprovação</span></div>
+        <div class="tasklist" id="aprovList"></div>
+        <div id="aprovPager"></div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:18px">
+      <div class="card-h"><span class="emo">📊</span> Pace histórico <span class="sub">demanda criada mês a mês desde o início no Jira · barra amarela = mês em curso</span></div>
+      <div class="grid g-kpi" id="histAgendaCmp" style="padding:16px 16px 0"></div>
+      <div id="histAgendaChart" style="padding:10px 12px 18px"></div>
+    </div>
+  </section>
+
+  <!-- ============ PACE ============ -->
+  <section class="view" id="v-pace">
+    <div class="note">
+      <span class="ico">⏱️</span>
+      <div>Os indicadores de pace <b>desconsideram a fila de aprovação de aprovação</b>. Como esses cards aguardam publicação e não execução da equipe, incluí-los inflaria o lead time e a idade média. A fila dela tem quadro próprio na aba <b>✅ Aprovações</b>.</div>
+    </div>
+    <div class="grid g-kpi" id="paceKpis" style="margin-bottom:18px"></div>
+
+    <div class="split" style="margin-bottom:18px">
+      <div class="card">
+        <div class="card-h"><span class="emo">⏳</span> Envelhecimento das ativas <span class="sub">tempo desde a criação · exclui aprovações</span></div>
+        <div id="agingChart"></div>
+        <div class="card-pad" style="padding-top:0">
+          <div class="insight i-info" style="margin:0"><span class="ico">💡</span><div class="txt" id="agingNote"></div></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-h"><span class="emo">📈</span> Throughput semanal <span class="sub">concluídas por semana</span></div>
+        <div id="throughChart"></div>
+        <div class="card-pad" style="padding-top:0">
+          <div class="insight i-info" style="margin:0"><span class="ico">💡</span><div class="txt" id="throughNote"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-h"><span class="emo">🔥</span> Mais antigas em aberto <span class="sub">priorize o desafogo · exclui fila de aprovação</span></div>
+      <div class="inline-filters">
+        <span class="lbl">Filtrar:</span>
+        <select class="fsel" id="oldStatus"><option value="">Todos os status</option></select>
+        <select class="fsel" id="oldEsp"><option value="">Todos os espaços</option></select>
+      </div>
+      <div class="tasklist" id="oldestList"></div>
+      <div id="oldestPager"></div>
+    </div>
+  </section>
+
+  <!-- ============ APROVAÇÕES KAREN ============ -->
+  <section class="view" id="v-karen">
+    <div class="karen-hero">
+      <span class="kh-ico">✅</span>
+      <div class="kh-txt">
+        <h3>Fila de aprovação</h3>
+        <p>Quadro dedicado aos cards em <b>Aguardando Aprovação</b>. São o pipeline de publicação a validar, não tarefas atrasadas da equipe, e por isso ficam fora dos cálculos de pace.</p>
+      </div>
+      <div class="kh-big tab-nums" id="karenBig">—<small>na fila do escopo</small></div>
+    </div>
+    <div class="grid g-kpi" id="karenKpis" style="margin-bottom:18px"></div>
+    <div class="card">
+      <div class="card-h"><span class="emo">📋</span> Cards aguardando aprovação <span class="sub">ordenados por tempo na fila</span></div>
+      <div class="inline-filters">
+        <span class="lbl">Filtrar:</span>
+        <select class="fsel" id="karenEsp"><option value="">Todos os espaços</option></select>
+      </div>
+      <div class="segbar" id="karenDueSeg"></div>
+      <div class="tasklist" id="karenList"></div>
+      <div id="karenPager"></div>
+    </div>
+
+    <div class="card" style="margin-top:18px">
+      <div class="card-h"><span class="emo">📊</span> Linha do tempo da fila <span class="sub">cards aguardando aprovação por mês de criação</span></div>
+      <div id="histKarenChart" style="padding:14px 12px 6px"></div>
+      <div class="card-pad" style="padding-top:0">
+        <div class="insight i-info" style="margin:0"><span class="ico">💡</span><div class="txt" id="histKarenNote"></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ AJUSTES ============ -->
+  <section class="view" id="v-ajustes">
+    <div class="note">
+      <span class="ico">🔧</span>
+      <div><b>Ajustes</b> reúne os cards que voltaram para revisão ou retrabalho (status <b>Ajustes</b> no Jira). Diferente da fila de aprovação, ajuste é trabalho ativo da equipe: se o prazo vencer, conta como atraso. Use este quadro para enxergar onde o retrabalho está concentrado.</div>
+    </div>
+    <div class="grid g-kpi" id="ajusteKpis" style="margin-bottom:18px"></div>
+    <div class="split" style="margin-bottom:18px">
+      <div class="card">
+        <div class="card-h"><span class="emo">👥</span> Ajustes por responsável <span class="sub">onde o retrabalho se concentra</span></div>
+        <div class="chart-wrap" id="ajusteByResp"></div>
+      </div>
+      <div class="card">
+        <div class="card-h"><span class="emo">🗂️</span> Ajustes por espaço</div>
+        <div class="chart-wrap" id="ajusteByEsp"></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-h"><span class="emo">📋</span> Cards em ajuste <span class="sub" id="ajusteCount"></span></div>
+      <div class="inline-filters">
+        <span class="lbl">Filtrar:</span>
+        <select class="fsel" id="ajusteEsp"><option value="">Todos os espaços</option></select>
+      </div>
+      <div class="tasklist" id="ajusteList"></div>
+      <div id="ajustePager"></div>
+    </div>
+  </section>
+
+  <!-- ============ ATIVIDADES ============ -->
+  <section class="view" id="v-ativ">
+    <div class="tbl-tools">
+      <div class="search">
+        <span class="si">🔎</span>
+        <input id="search" type="text" placeholder="Buscar por título ou chave do card...">
+      </div>
+      <select class="fsel" id="fSit">
+        <option value="active">Ativas</option>
+        <option value="done">Concluídas (120d)</option>
+        <option value="all">Todas</option>
+      </select>
+      <select class="fsel" id="fStatus"><option value="">Todos os status</option></select>
+      <select class="fsel" id="fPrio">
+        <option value="">Todas prioridades</option>
+        <option value="Highest">Highest</option>
+        <option value="High">High</option>
+        <option value="Medium">Medium</option>
+        <option value="Low">Low</option>
+        <option value="Lowest">Lowest</option>
+      </select>
+      <div class="fchip crit" id="chipLate">🔴 Só atrasadas</div>
+      <div class="fchip" id="chipNoAssignee">👤 Sem responsável</div>
+    </div>
+    <div class="tbl-count" id="tblCount"></div>
+    <div class="tbl-scroll">
+      <table class="table" id="tbl">
+        <thead><tr>
+          <th data-s="k">Chave <span class="sortarr">▾</span></th>
+          <th data-s="s">Resumo <span class="sortarr">▾</span></th>
+          <th data-s="pj">Espaço <span class="sortarr">▾</span></th>
+          <th data-s="as">Responsável <span class="sortarr">▾</span></th>
+          <th data-s="st">Status <span class="sortarr">▾</span></th>
+          <th data-s="pr">Prioridade <span class="sortarr">▾</span></th>
+          <th data-s="cr" class="c-num">Criada <span class="sortarr">▾</span></th>
+          <th data-s="du" class="c-num">Prazo <span class="sortarr">▾</span></th>
+          <th data-s="age" class="c-num">Tempo (dias) <span class="sortarr">▾</span></th>
+          <th style="cursor:default">Ação</th>
+        </tr></thead>
+        <tbody id="tblBody"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="view" id="v-log">
+    <div class="card">
+      <div class="card-h"><span class="emo">🧾</span> Log de mudanças nos cards <span class="sub" id="logSub">eventos dos últimos 7 dias</span></div>
+      <div class="loginsights" id="logInsights"></div>
+    </div>
+    <div class="card">
+      <div class="inline-filters">
+        <span class="lbl">Filtrar:</span>
+        <select class="fsel" id="logEsp"><option value="">Todos os espaços</option></select>
+        <select class="fsel" id="logUsr"><option value="">Todos os usuários</option></select>
+        <select class="fsel" id="logTipo">
+          <option value="">Todos os tipos</option>
+          <option value="criado">Cards criados</option>
+          <option value="concluido">Cards concluídos</option>
+          <option value="comentario">Comentários</option>
+        </select>
+      </div>
+      <div class="logtable" id="logList"></div>
+      <div id="logPager"></div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <svg class="pen" width="14" height="14" viewBox="0 0 100 100"><polygon points="50,12 88,80 12,80" stroke="#989898" stroke-width="9" fill="none" stroke-linejoin="round"/></svg>
+  Painel gerencial gerado a partir de dados reais do Jira Connect-IN Digital · Snapshot único · Abra este arquivo localmente quando quiser revisitar.
+</footer>
+
+<script>
+const _now = new Date();
+const _p2 = n => String(n).padStart(2,"0");
+const SNAP = _now.getFullYear()+"-"+_p2(_now.getMonth()+1)+"-"+_p2(_now.getDate());
+const SNAP_TS = _p2(_now.getDate())+"/"+_p2(_now.getMonth()+1)+"/"+_now.getFullYear()+" às "+_p2(_now.getHours())+"h"+_p2(_now.getMinutes())+" (Brasília)";
+const BASE_URL = "https://connectindigital.atlassian.net/browse/";
+let DATA = [];
+let LOGDATA = [];
+
+/* ---------- util de datas ---------- */
+function pd(s){ if(!s) return null; const p=s.split("-"); return new Date(+p[0],+p[1]-1,+p[2]); }
+const SNAPD = pd(SNAP);
+function days(a,b){ return Math.round((b-a)/86400000); }
+function fmt(s){ if(!s) return "—"; const p=s.split("-"); return p[2]+"/"+p[1]; }
+function fmtFull(s){ if(!s) return "—"; const p=s.split("-"); return p[2]+"/"+p[1]+"/"+p[0]; }
+const MESES=["janeiro","fevereiro","março","abril","maio","junho","julho","agosto","setembro","outubro","novembro","dezembro"];
+const DOW=["dom","seg","ter","qua","qui","sex","sáb"];
+
+const AGUARD="Aguardando Aprovação";
+function shortName(n){
+  if(n==="—") return "Sem resp.";
+  const parts=n.trim().split(/\s+/);
+  let f=parts[0];
+  f=f.charAt(0).toUpperCase()+f.slice(1);
+  if(parts.length>1){ let l=parts[parts.length-1]; if(parts[0].toLowerCase()==="ana") return "Ana Clara"; }
+  return f;
+}
+function isOverdue(x){ return x.b==="active" && x.du && pd(x.du)<SNAPD && x.st!==AGUARD; }
+function ageOf(x){ const c=pd(x.cr); return c? days(c,SNAPD):null; }
+
+/* status -> classe/cor */
+function statusClass(st){
+  if(st===AGUARD) return "b-aprov";
+  if(st==="Em andamento") return "b-prog";
+  if(st==="Concluído"||st==="Concluido") return "b-done";
+  if(st==="Backlog") return "b-back";
+  return "b-pend";
+}
+const STATUS_COLOR={ "Tarefas pendentes":"var(--s-pend)","Em andamento":"var(--s-prog)",[AGUARD]:"var(--s-aprov)","Backlog":"var(--s-back)","Programação Redes Sociais":"#5BA89E","Concluído":"var(--s-done)" };
+function statusColor(st){ return STATUS_COLOR[st]||"var(--s-pend)"; }
+function prioClass(p){ return p==="Highest"?"p-highest":p==="High"?"p-high":(p==="Low"||p==="Lowest")?"p-low":"p-medium"; }
+const PRIO_COLOR={Highest:"var(--p-highest)",High:"var(--p-high)",Medium:"var(--p-medium)",Low:"var(--p-low)",Lowest:"var(--p-low)",Sem:"var(--gray)"};
+const ESP_PALETTE=["#2F7FE0","#8B5CF6","#2E9E5B","#E8920C","#D64533","#0EA5A4","#D9A400","#E0567D","#5B6B8C","#7C9A3E","#B5651D","#6366F1","#14919B","#C2477A","#3F8E5B","#9A6BD6","#C98A2B"];
+
+/* ---------- identidade visual de pessoas e espaços ---------- */
+function strHash(s){ let h=0; s=s||""; for(let i=0;i<s.length;i++){ h=(h*31+s.charCodeAt(i))>>>0; } return h; }
+function espColor(pj){ if(!pj) return "var(--gray)"; return ESP_PALETTE[strHash(pj)%ESP_PALETTE.length]; }
+const AVATAR_COLORS=["#2F7FE0","#8B5CF6","#2E9E5B","#E8920C","#D64533","#0EA5A4","#E0567D","#5B6B8C","#7C9A3E","#6366F1"];
+function avatarColor(n){ if(!n||n==="—") return "#B6B2A8"; return AVATAR_COLORS[strHash(n)%AVATAR_COLORS.length]; }
+function initials(n){
+  if(!n||n==="—") return "?";
+  const p=n.trim().split(/\s+/).filter(Boolean);
+  if(p.length===1) return p[0].slice(0,2).toUpperCase();
+  return (p[0][0]+p[p.length-1][0]).toUpperCase();
+}
+function avatarMini(n){ return `<span class="av" style="background:${avatarColor(n)}">${initials(n)}</span>`; }
+
+/* ---------- compartilhamento via WhatsApp ---------- */
+function waLink(x){
+  const nome = (x.as && x.as!=="—") ? shortName(x.as) : "pessoal";
+  const link = BASE_URL + x.k;
+  const msg = `Oi ${nome}! Tudo bem? 😊 Quando puder, dá uma olhada nessa atividade aqui no Jira pra gente seguir com o fluxo: "${x.s}" (${x.k}). Link direto: ${link}. Obrigado!`;
+  return "https://wa.me/?text=" + encodeURIComponent(msg);
+}
+function waBtn(x){
+  return `<a class="wa-btn" href="${waLink(x)}" target="_blank" rel="noopener" title="Compartilhar no WhatsApp pedindo atenção do responsável" onclick="event.stopPropagation()">💬</a>`;
+}
+function openCard(k){ window.open(BASE_URL+k,"_blank","noopener"); }
+
+/* ---------- paginação ---------- */
+let pg={late:1, aprov:1, oldest:1, karen:1, ajuste:1, log:1};
+const PER={late:6, aprov:6, oldest:8, karen:8, ajuste:8, log:20};
+function pageSlice(key,arr){ const per=PER[key]; const cur=pg[key]; return arr.slice((cur-1)*per,(cur-1)*per+per); }
+function pager(key,total){
+  const per=PER[key]; const pages=Math.max(1,Math.ceil(total/per));
+  if(pg[key]>pages) pg[key]=pages; if(pg[key]<1) pg[key]=1;
+  const cur=pg[key];
+  if(pages<=1) return "";
+  return `<div class="pager">
+    <button ${cur<=1?'disabled':''} onclick="goPage('${key}',${cur-1})">‹ Anterior</button>
+    <span class="pinfo">Página <b>${cur}</b> de <b>${pages}</b> · ${total} itens</span>
+    <button ${cur>=pages?'disabled':''} onclick="goPage('${key}',${cur+1})">Próxima ›</button>
+  </div>`;
+}
+function goPage(key,n){
+  pg[key]=n;
+  if(key==='late') renderLateList();
+  else if(key==='aprov') renderAprovList();
+  else if(key==='oldest') renderOldest();
+  else if(key==='karen') renderKarenList();
+  else if(key==='log') renderLogList();
+}
+
+/* ---------- estado ---------- */
+let state={ resp:"__all__", esp:"__all__" };
+let calY=SNAPD.getFullYear(), calM=SNAPD.getMonth();
+let agendaMode={type:"hoje", day:null};
+let tblState={sit:"active", status:"", prio:"", late:false, noass:false, q:"", sort:"du", dir:1};
+
+/* conjunto base no escopo global */
+function scoped(arr){
+  return arr.filter(x=>{
+    if(state.resp!=="__all__" && x.as!==state.resp) return false;
+    if(state.esp!=="__all__" && x.pj!==state.esp) return false;
+    return true;
+  });
+}
+const ACTIVE=()=>scoped(DATA.filter(x=>x.b==="active"));
+const DONE=()=>scoped(DATA.filter(x=>x.b==="done"));
+const UNIV=()=>scoped(DATA);
+
+/* ===================== SÉRIE HISTÓRICA (mês a mês) ===================== */
+const MES_ABREV=["jan","fev","mar","abr","mai","jun","jul","ago","set","out","nov","dez"];
+const CUR_MONTH=SNAP.slice(0,7);
+function monthKey(ymd){ return ymd? ymd.slice(0,7):null; }
+function monthLabel(mk){ const a=mk.split("-"); return MES_ABREV[(+a[1])-1]+"/"+a[0].slice(2); }
+function monthList(){
+  const mins=DATA.map(x=>monthKey(x.cr)).filter(Boolean).sort();
+  if(!mins.length) return [];
+  let a=mins[0].split("-").map(Number), y=a[0], m=a[1];
+  const out=[];
+  while(out.length<60){ const mk=y+"-"+String(m).padStart(2,"0"); out.push(mk); if(mk===CUR_MONTH) break; m++; if(m>12){m=1;y++;} }
+  return out;
+}
+function sCreated(items){ const o={}; items.forEach(x=>{const k=monthKey(x.cr); if(k)o[k]=(o[k]||0)+1;}); return o; }
+function sDone(items){ const o={}; items.forEach(x=>{ if(x.b!=="done")return; const k=monthKey(x.rs); if(k)o[k]=(o[k]||0)+1;}); return o; }
+function sLate(items){ const o={}; items.forEach(x=>{ if(!x.du)return; const k=monthKey(x.du); if(!k)return;
+  let late=false;
+  if(x.b==="done"){ if(x.rs && x.rs>x.du) late=true; }
+  else { if(x.st!==AGUARD && pd(x.du)<SNAPD) late=true; }
+  if(late) o[k]=(o[k]||0)+1;
+}); return o; }
+function monthRows(serie, highlightCur){
+  return monthList().map(mk=>({label:monthLabel(mk), v:serie[mk]||0,
+    color: (highlightCur!==false && mk===CUR_MONTH)? "var(--brand)" : "var(--s-prog)"}));
+}
+/* ---------- granularidade: mes / quinzena / semana / dia ---------- */
+let gran="mes";
+const GRAN_WIN={mes:24, quinzena:14, semana:16, dia:31};
+function pad2(n){ return String(n).padStart(2,"0"); }
+function ymd(d){ return d.getFullYear()+"-"+pad2(d.getMonth()+1)+"-"+pad2(d.getDate()); }
+function startOfWeek(d){ const x=new Date(d.getFullYear(),d.getMonth(),d.getDate()); const wd=(x.getDay()+6)%7; x.setDate(x.getDate()-wd); return x; }
+function weekEndSun(){ const d=new Date(SNAPD); const wd=(d.getDay()+6)%7; return new Date(d.getFullYear(),d.getMonth(),d.getDate()+(6-wd)); }
+function periodKey(s,g){
+  if(!s) return null;
+  const p=s.slice(0,10).split("-"); const y=+p[0], m=+p[1], dd=+p[2];
+  if(g==="mes") return p[0]+"-"+p[1];
+  if(g==="quinzena") return p[0]+"-"+p[1]+(dd<=15?"-A":"-B");
+  if(g==="dia") return p[0]+"-"+p[1]+"-"+p[2];
+  if(g==="semana"){ const mon=startOfWeek(new Date(y,m-1,dd)); return "W"+ymd(mon); }
+  return p[0]+"-"+p[1];
+}
+function curKey(g){ return periodKey(SNAP,g); }
+function periodLabel(k,g){
+  if(g==="mes"){ const a=k.split("-"); return MES_ABREV[(+a[1])-1]+"/"+a[0].slice(2); }
+  if(g==="quinzena"){ const a=k.split("-"); return (a[2]==="A"?"1q ":"2q ")+MES_ABREV[(+a[1])-1]; }
+  if(g==="semana"){ const d=k.slice(1).split("-"); return d[2]+"/"+d[1]; }
+  const d=k.split("-"); return d[2]+"/"+d[1];
+}
+function periodList(g){
+  const mins=DATA.map(x=>x.cr).filter(Boolean).sort();
+  if(!mins.length) return [];
+  const cur=pd(mins[0].slice(0,10)); const out=[]; let guard=0;
+  if(g==="mes"){
+    let y=cur.getFullYear(), m=cur.getMonth();
+    while(guard++<240){ const k=y+"-"+pad2(m+1); out.push(k); if(k===curKey("mes")) break; m++; if(m>11){m=0;y++;} }
+  } else if(g==="quinzena"){
+    let d=new Date(cur.getFullYear(),cur.getMonth(),cur.getDate()<=15?1:16);
+    while(guard++<480){ const k=periodKey(ymd(d),"quinzena"); out.push(k); if(k===curKey("quinzena")) break;
+      d = d.getDate()===1 ? new Date(d.getFullYear(),d.getMonth(),16) : new Date(d.getFullYear(),d.getMonth()+1,1); }
+  } else if(g==="semana"){
+    let d=startOfWeek(cur);
+    while(guard++<520){ const k="W"+ymd(d); out.push(k); if(k===curKey("semana")) break; d.setDate(d.getDate()+7); }
+  } else {
+    let d=new Date(cur.getFullYear(),cur.getMonth(),cur.getDate());
+    while(guard++<2200){ const k=ymd(d); out.push(k); if(k===curKey("dia")) break; d.setDate(d.getDate()+1); }
+  }
+  const win=GRAN_WIN[g]||9999;
+  return out.slice(-win);
+}
+function sByPeriod(items, field, g){
+  const o={};
+  items.forEach(x=>{
+    let ds=null;
+    if(field==="cr") ds=x.cr;
+    else if(field==="rs"){ if(x.b!=="done") return; ds=x.rs; }
+    else if(field==="late"){
+      if(!x.du) return; let late=false;
+      if(x.b==="done"){ if(x.rs && x.rs>x.du) late=true; }
+      else { if(x.st!==AGUARD && pd(x.du)<SNAPD) late=true; }
+      if(!late) return; ds=x.du;
+    }
+    const k=periodKey(ds,g); if(k) o[k]=(o[k]||0)+1;
+  });
+  return o;
+}
+const GRAN_NOME={mes:"mes a mes desde jan/2026", quinzena:"por quinzena", semana:"por semana", dia:"por dia"};
+function pctChange(cur,prev){ if(prev===0) return cur===0?0:null; return Math.round((cur-prev)/prev*100); }
+function variation(cur,prev){
+  const p=pctChange(cur,prev);
+  if(p===null) return {txt:"sem base anterior", arrow:"🆕", cls:"k-brand"};
+  if(p>0) return {txt:"+"+p+"% vs anterior", arrow:"▲", cls:"k-ok"};
+  if(p<0) return {txt:p+"% vs anterior", arrow:"▼", cls:"k-crit"};
+  return {txt:"estável vs anterior", arrow:"▮", cls:"k-prog"};
+}
+function refMonths(){
+  const list=monthList();
+  const closed=list.filter(m=>m<CUR_MONTH);
+  return { cur:CUR_MONTH, last:closed[closed.length-1]||null, prev:closed[closed.length-2]||null, lastYear:(()=>{const a=CUR_MONTH.split("-");return (a[0]-1)+"-"+a[1];})() };
+}
+
+/* ---------- Agenda: pace histórico ---------- */
+function renderHistAgenda(){
+  const U=UNIV();
+  const created=sCreated(U);
+  const ref=refMonths();
+  columns(document.getElementById("histAgendaChart"), monthRows(created));
+  const curV=created[ref.cur]||0, lastV=ref.last?(created[ref.last]||0):0, prevV=ref.prev?(created[ref.prev]||0):0;
+  const vCur=variation(curV,lastV), vLast=variation(lastV,prevV);
+  const med=(()=>{const ms=monthList().filter(m=>m<CUR_MONTH);const t=ms.reduce((a,m)=>a+(created[m]||0),0);return ms.length?Math.round(t/ms.length):0;})();
+  document.getElementById("histAgendaCmp").innerHTML=[
+    kpi({emo:"📥",lbl:"Demanda no mês atual",val:curV,cls:"k-brand",foot:monthLabel(ref.cur)+" em curso · "+vCur.arrow+" "+vCur.txt}),
+    kpi({emo:"✅",lbl:"Último mês fechado",val:lastV,cls:vLast.cls,foot:(ref.last?monthLabel(ref.last):"—")+" · "+vLast.arrow+" "+vLast.txt}),
+    kpi({emo:"📊",lbl:"Média mensal",val:med,cls:"k-prog",foot:"meses fechados"}),
+  ].join("");
+}
+/* ---------- Karen: histórico da fila ---------- */
+function renderHistKaren(){
+  const Q=ACTIVE().filter(x=>x.st===AGUARD);
+  const created=sCreated(Q);
+  columns(document.getElementById("histKarenChart"), monthRows(created,false).map(r=>({label:r.label,v:r.v,color:"var(--s-aprov)"})));
+  const oldShare=(()=>{ const old=Q.filter(x=>{const k=monthKey(x.cr); return k && k<CUR_MONTH;}).length; return Q.length?Math.round(old/Q.length*100):0; })();
+  document.getElementById("histKarenNote").innerHTML=`<b>${oldShare}%</b> dos cards na fila foram criados em meses anteriores ao atual. `+(oldShare>60?`A fila está acumulando safras antigas: vale um mutirão de aprovação.`:`Acúmulo de meses antigos sob controle.`);
+}
+/* ---------- Exec: tendências e comparativos ---------- */
+function renderTrends(){
+  const U=UNIV();
+  const created=sCreated(U), done=sDone(U), late=sLate(U);
+  const ref=refMonths();
+  const lbl=m=>m?monthLabel(m):"—";
+  const dLast=ref.last?(done[ref.last]||0):0, dPrev=ref.prev?(done[ref.prev]||0):0;
+  const cLast=ref.last?(created[ref.last]||0):0, cPrev=ref.prev?(created[ref.prev]||0):0;
+  const lLast=ref.last?(late[ref.last]||0):0, lPrev=ref.prev?(late[ref.prev]||0):0;
+  const vD=variation(dLast,dPrev), vC=variation(cLast,cPrev);
+  const lp=pctChange(lLast,lPrev);
+  const vL = lp===null? {txt:"sem base anterior",arrow:"🆕",cls:"k-brand"} : lp>0? {txt:"+"+lp+"% vs anterior",arrow:"▲",cls:"k-crit"} : lp<0? {txt:lp+"% vs anterior",arrow:"▼",cls:"k-ok"} : {txt:"estável",arrow:"▮",cls:"k-prog"};
+  document.getElementById("trendKpis").innerHTML=[
+    kpi({emo:"🏭",lbl:"Produção (mês fechado)",val:dLast,cls:vD.cls,foot:lbl(ref.last)+" · "+vD.arrow+" "+vD.txt}),
+    kpi({emo:"📥",lbl:"Demanda (mês fechado)",val:cLast,cls:vC.cls,foot:lbl(ref.last)+" · "+vC.arrow+" "+vC.txt}),
+    kpi({emo:"🔴",lbl:"Atrasos por vencimento",val:lLast,cls:vL.cls,foot:lbl(ref.last)+" · "+vL.arrow+" "+vL.txt}),
+    kpi({emo:"🗓️",lbl:"Produção no mês atual",val:done[ref.cur]||0,cls:"k-brand",foot:lbl(ref.cur)+" em curso"}),
+  ].join("");
+  const pl=periodList(gran), dP=sByPeriod(U,"rs",gran), ck=curKey(gran);
+  columns(document.getElementById("trendChart"),
+    pl.map(k=>({label:periodLabel(k,gran), v:dP[k]||0, color: k===ck?"var(--brand)":"var(--s-done-soft)"})),
+    {line:true, lineColor:"var(--s-ok)"});
+  const subEl=document.getElementById("trendChartSub"); if(subEl) subEl.textContent="produção "+GRAN_NOME[gran]+" · linha = evolução";
+  const cP=sByPeriod(U,"cr",gran);
+  groupedBars(document.getElementById("vazaoChart"),
+    pl.map(k=>({label:periodLabel(k,gran), a:cP[k]||0, c:dP[k]||0, tx:(cP[k]?Math.round((dP[k]||0)/cP[k]*100):0)})));
+  const vzSub=document.getElementById("vazaoSub"); if(vzSub) vzSub.textContent="vazão "+GRAN_NOME[gran]+" · azul entra, verde sai";
+  const out=[];
+  if(ref.last){
+    const aLast=created[ref.last]||0; const txLast=aLast?Math.round(dLast/aLast*100):0;
+    if(aLast){
+      if(txLast>=100) out.push(["i-ok","🟢",`Em ${lbl(ref.last)} saiu mais do que entrou: taxa de conclusão de <b>${txLast}%</b> (${dLast} concluídas para ${aLast} abertas). A fila diminuiu no mês.`]);
+      else if(txLast>=60) out.push(["i-info","🔵",`Em ${lbl(ref.last)} a taxa de conclusão foi <b>${txLast}%</b> (${dLast} concluídas para ${aLast} abertas). A entrega quase acompanhou a entrada.`]);
+      else out.push(["i-warn","🟠",`Em ${lbl(ref.last)} entrou bem mais do que saiu: taxa de conclusão de <b>${txLast}%</b> (${dLast} concluídas para ${aLast} abertas). A fila cresceu nesse mês.`]);
+    }
+  }
+  if(ref.last && ref.prev){
+    if(vD.txt[0]==="+") out.push(["i-ok","🟢",`Produção subiu em ${lbl(ref.last)}: <b>${dLast} concluídas</b> contra ${dPrev} em ${lbl(ref.prev)}. Ritmo de entrega em alta.`]);
+    else if(vD.txt[0]==="-") out.push(["i-warn","🟠",`Produção caiu em ${lbl(ref.last)}: <b>${dLast} concluídas</b> contra ${dPrev} em ${lbl(ref.prev)}. Vale entender o que travou o fluxo.`]);
+    else out.push(["i-info","🔵",`Produção estável entre ${lbl(ref.prev)} e ${lbl(ref.last)}, cerca de ${dLast} por mês.`]);
+    if(lp!==null){
+      if(lp<0) out.push(["i-ok","🟢",`Atrasos por vencimento caíram <b>${Math.abs(lp)}%</b> de ${lbl(ref.prev)} para ${lbl(ref.last)}. A pontualidade está melhorando.`]);
+      else if(lp>0) out.push(["i-warn","🟠",`Atrasos por vencimento subiram <b>${lp}%</b> de ${lbl(ref.prev)} para ${lbl(ref.last)}. Reforce os marcos de entrega.`]);
+      else out.push(["i-info","🔵",`Atrasos por vencimento estáveis entre ${lbl(ref.prev)} e ${lbl(ref.last)}.`]);
+    }
+  } else {
+    out.push(["i-info","🔵",`Ainda há poucos meses fechados para uma leitura de tendência robusta. A base cresce a cada mês.`]);
+  }
+  out.push(["i-info","📅",`Comparativo com o mesmo período do ano passado (${lbl(ref.lastYear)}) ainda não é possível: o uso do Jira começou em janeiro de 2026, então não há base de 2025.`]);
+  document.getElementById("trendInsights").innerHTML=out.map(o=>`<div class="insight ${o[0]}"><span class="ico">${o[1]}</span><div class="txt">${o[2]}</div></div>`).join("");
+}
+
+/* ---------- componentes ---------- */
+function kpi(o){
+  return `<div class="card card-pad kpi ${o.cls||''} ${o.click?'clickable':''}" ${o.onclick?`onclick="${o.onclick}"`:''}>
+    <span class="bar"></span>
+    <div class="kpi-lbl">${o.emo?`<span>${o.emo}</span>`:''}${o.lbl}</div>
+    <div class="kpi-val tab-nums">${o.val}${o.suf?`<small>${o.suf}</small>`:''}</div>
+    <div class="kpi-foot">${o.foot||''}</div>
+  </div>`;
+}
+function badge(st){ return `<span class="badge ${statusClass(st)}"><span class="dot"></span>${st}</span>`; }
+function pchip(p){ return `<span class="pchip ${prioClass(p)}"><span class="pdot"></span>${p}</span>`; }
+
+function taskRow(x, opt){
+  opt=opt||{};
+  const late=isOverdue(x);
+  const due = (opt.due!==false && x.du)? `<span class="tp" style="color:${late?'var(--crit)':'var(--txt-soft)'}">${late?'⚠ ':''}${fmt(x.du)}</span>`:'';
+  const age=ageOf(x);
+  const ageTag = (opt.age && age!==null)? `<span class="tp" style="color:${age>60?'var(--crit)':age>30?'var(--warn)':'var(--txt-soft)'}">⌛ ${age}d</span>`:'';
+  const asg = opt.asg? `<span class="asg" title="${esc(x.as)}">${avatarMini(x.as)}${esc(shortName(x.as))}</span>`:'';
+  const espTag = opt.esp? `<span class="espchip" style="background:${espColor(x.pj)}" title="${esc(x.pj)}">${esc(x.pj)}</span>`:'';
+  return `<div class="task" onclick="openCard('${x.k}')">
+    <span class="tk">${x.k}</span>
+    <span class="ts" title="${esc(x.s)}">${esc(x.s)}</span>
+    <span class="meta">${espTag}${asg}${badge(x.st)}${due}${ageTag}${waBtn(x)}<span class="arr">↗</span></span>
+  </div>`;
+}
+function esc(s){ return (s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
+
+/* ---------- barras horizontais ---------- */
+function barH(el, rows, opt){
+  opt=opt||{};
+  const max=Math.max(1,...rows.map(r=>r.v));
+  el.innerHTML = rows.map(r=>{
+    const w=Math.max(4,(r.v/max)*100);
+    return `<div class="barrow">
+      <span class="nm" title="${esc(r.label)}">${esc(r.label)}</span>
+      <div class="track"><div class="fill" style="width:${w}%;background:${r.color}">${r.v}</div></div>
+    </div>`;
+  }).join("") || `<div class="empty"><span class="em">∅</span>Sem dados no escopo</div>`;
+}
+
+/* ---------- donut ---------- */
+function donut(el, rows){
+  const total=rows.reduce((a,b)=>a+b.v,0);
+  if(!total){ el.innerHTML=`<div class="empty"><span class="em">∅</span>Sem dados no escopo</div>`; return; }
+  const R=54,SW=22,C=2*Math.PI*R; let off=0;
+  const segs=rows.filter(r=>r.v>0).map(r=>{
+    const frac=r.v/total, len=frac*C;
+    const s=`<circle r="${R}" cx="70" cy="70" fill="none" stroke="${r.color}" stroke-width="${SW}"
+      stroke-dasharray="${len} ${C-len}" stroke-dashoffset="${-off}" transform="rotate(-90 70 70)"/>`;
+    off+=len; return s;
+  }).join("");
+  const legend=rows.map(r=>`<div class="li"><span class="sw" style="background:${r.color}"></span>
+    <span class="nm">${esc(r.label)}</span><span class="vl tab-nums">${r.v}</span>
+    <span class="pc tab-nums">${total?Math.round(r.v/total*100):0}%</span></div>`).join("");
+  el.innerHTML=`<div class="donut-wrap">
+    <svg width="140" height="140" viewBox="0 0 140 140">${segs}
+      <text x="70" y="64" text-anchor="middle" font-size="26" font-weight="800" fill="#1E1E1E" font-family="-apple-system,system-ui,sans-serif">${total}</text>
+      <text x="70" y="82" text-anchor="middle" font-size="10" font-weight="600" fill="#6E6B63" font-family="-apple-system,system-ui,sans-serif">total</text>
+    </svg>
+    <div class="donut-legend">${legend}</div></div>`;
+}
+
+/* ---------- colunas ---------- */
+function columns(el, rows, opt){
+  opt=opt||{};
+  const max=Math.max(1,...rows.map(r=>r.v));
+  const n=rows.length;
+  const gap=n>12?4:(n>8?6:10);
+  const bars=rows.map(r=>{
+    const h=(r.v/max)*100;
+    return `<div class="col"><div class="cval">${r.v}</div>
+      <div class="cbar" style="height:${Math.max(2,h)}%;background:${r.color||'var(--s-prog)'}"></div></div>`;
+  }).join("");
+  let line="";
+  if(opt.line && n>1){
+    const pts=rows.map((r,i)=>{ const x=((i+0.5)/n)*100; const y=100-((r.v/max)*100); return x.toFixed(2)+","+y.toFixed(2); });
+    line=`<svg class="col-line" viewBox="0 0 100 100" preserveAspectRatio="none">`+
+      `<polyline points="${pts.join(" ")}" fill="none" stroke="${opt.lineColor||'var(--s-prog)'}" stroke-width="2.4" vector-effect="non-scaling-stroke" stroke-linejoin="round" stroke-linecap="round"/></svg>`;
+  }
+  const xs=rows.map(r=>`<span>${esc(r.label)}</span>`).join("");
+  el.innerHTML=`<div class="col-chart" style="--gap:${gap}px">${bars}${line}</div><div class="col-x" style="--gap:${gap}px">${xs}</div>`;
+}
+function groupedBars(el, rows){
+  const max=Math.max(1,...rows.flatMap(r=>[r.a,r.c]));
+  const cols=rows.map(r=>{
+    const ha=Math.max(2,(r.a/max)*100), hc=Math.max(2,(r.c/max)*100);
+    const txc = r.a===0?'#989898':(r.tx>=100?'#2E9E5B':(r.tx>=60?'#E0B400':'#D64545'));
+    return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:5px;min-width:0">
+      <div style="font-size:12px;font-weight:800;color:${txc};letter-spacing:-.3px">${r.a?r.tx+'%':'—'}</div>
+      <div style="display:flex;align-items:flex-end;gap:4px;height:120px;width:100%;justify-content:center">
+        <div style="width:30%;max-width:20px;height:${ha}%;background:#2F7FE0;border-radius:3px 3px 0 0;position:relative">
+          <span style="position:absolute;top:-15px;left:50%;transform:translateX(-50%);font-size:10px;font-weight:700;color:#2F7FE0">${r.a}</span></div>
+        <div style="width:30%;max-width:20px;height:${hc}%;background:#2E9E5B;border-radius:3px 3px 0 0;position:relative">
+          <span style="position:absolute;top:-15px;left:50%;transform:translateX(-50%);font-size:10px;font-weight:700;color:#2E9E5B">${r.c}</span></div>
+      </div></div>`;
+  }).join("");
+  const xs=rows.map(r=>`<span style="flex:1;text-align:center;font-size:10.5px;color:var(--ink-soft)">${esc(r.label)}</span>`).join("");
+  el.innerHTML=`<div style="display:flex;align-items:flex-end;gap:6px;padding:20px 4px 4px">${cols}</div>
+    <div style="display:flex;gap:6px;padding:0 4px 6px">${xs}</div>
+    <div style="display:flex;flex-wrap:wrap;gap:6px 16px;justify-content:center;padding:8px 4px 2px;font-size:10.5px;color:var(--ink-soft)">
+      <span style="display:inline-flex;align-items:center;gap:5px"><i style="width:10px;height:10px;background:#2F7FE0;border-radius:2px;display:inline-block"></i>Abertas (criadas)</span>
+      <span style="display:inline-flex;align-items:center;gap:5px"><i style="width:10px;height:10px;background:#2E9E5B;border-radius:2px;display:inline-block"></i>Concluídas</span>
+      <span><b style="color:#2E9E5B">%</b> = taxa de conclusão (concluídas ÷ abertas)</span>
+    </div>`;
+}
+
+/* ===================== RENDER EXEC ===================== */
+function renderExec(){
+  const A=ACTIVE();
+  const over=A.filter(isOverdue);
+  const aprov=A.filter(x=>x.st===AGUARD);
+  const prog=A.filter(x=>x.st==="Em andamento");
+  const ajuste=A.filter(x=>x.st==="Ajustes");
+  const pend=A.filter(x=>x.sc==="Itens Pendentes" && x.st!==AGUARD);
+  const noass=A.filter(x=>x.as==="—");
+
+  document.getElementById("execKpis").innerHTML=[
+    kpi({emo:"📦",lbl:"Ativas no escopo",val:A.length,cls:"k-brand",foot:"total em aberto"}),
+    kpi({emo:"🔴",lbl:"Atrasadas",val:over.length,cls:"k-crit",foot:"prazo vencido (real)"}),
+    kpi({emo:"🔵",lbl:"Em andamento",val:prog.length,cls:"k-prog",foot:"em execução agora"}),
+    kpi({emo:"🔧",lbl:"Em ajustes",val:ajuste.length,cls:ajuste.length>0?"k-warn":"k-ok",foot:"retrabalho em curso"}),
+    kpi({emo:"✅",lbl:"Aguard. aprovação",val:aprov.length,cls:"k-aprov",foot:"fila de aprovação"}),
+    kpi({emo:"👤",lbl:"Sem responsável",val:noass.length,cls:noass.length>0?"k-warn":"k-ok",foot:"precisam de dono"}),
+  ].join("");
+
+  // donut status
+  const stCount={};
+  A.forEach(x=>stCount[x.st]=(stCount[x.st]||0)+1);
+  const stRows=Object.entries(stCount).sort((a,b)=>b[1]-a[1]).map(([k,v])=>({label:k,v,color:statusColor(k)}));
+  donut(document.getElementById("donutStatus"), stRows);
+
+  // donut prioridade
+  const prCount={};
+  A.forEach(x=>prCount[x.pr]=(prCount[x.pr]||0)+1);
+  const order=["Highest","High","Medium","Low","Lowest","Sem"];
+  const prRows=order.filter(p=>prCount[p]).map(p=>({label:p,v:prCount[p],color:PRIO_COLOR[p]}));
+  donut(document.getElementById("donutPrio"), prRows);
+
+  // barras responsável
+  const rc={};
+  A.forEach(x=>rc[x.as]=(rc[x.as]||0)+1);
+  const rRows=Object.entries(rc).sort((a,b)=>b[1]-a[1]).map(([k,v])=>({label:shortName(k),v,color:k==="—"?"var(--gray)":"var(--s-prog)"}));
+  barH(document.getElementById("barResp"), rRows);
+
+  // barras espaço
+  const ec={};
+  A.forEach(x=>ec[x.pj]=(ec[x.pj]||0)+1);
+  const eRows=Object.entries(ec).sort((a,b)=>b[1]-a[1]).slice(0,12).map(([k,v],i)=>({label:k,v,color:ESP_PALETTE[i%ESP_PALETTE.length]}));
+  barH(document.getElementById("barEsp"), eRows);
+
+  // barras total por espaço (abertos + concluídos, histórico)
+  const U=UNIV(); const et={};
+  U.forEach(x=>et[x.pj]=(et[x.pj]||0)+1);
+  const etRows=Object.entries(et).sort((a,b)=>b[1]-a[1]).slice(0,12).map(([k,v],i)=>({label:k,v,color:ESP_PALETTE[i%ESP_PALETTE.length]}));
+  barH(document.getElementById("barEspTotal"), etRows);
+
+  renderInsights(A,over,aprov,prog,noass,rc,ec);
+  renderTrends();
+}
+
+function renderInsights(A,over,aprov,prog,noass,rc,ec){
+  const scope = state.resp==="__all__" && state.esp==="__all__" ? "toda a operação"
+    : [state.resp!=="__all__"?shortName(state.resp):null, state.esp!=="__all__"?state.esp:null].filter(Boolean).join(" · ");
+  document.getElementById("insScope").textContent="escopo: "+scope;
+  const out=[];
+  // atraso
+  if(over.length===0){
+    out.push(["i-ok","🟢",`Nenhuma atividade atrasada no escopo. A operação está em dia nos prazos reais.`]);
+  } else {
+    const pct=Math.round(over.length/Math.max(1,A.length)*100);
+    out.push([pct>20?"i-crit":"i-warn", pct>20?"🔴":"🟠",
+      `<b>${over.length} atividades atrasadas</b> (${pct}% das ativas). Concentre o desafogo aqui antes de abrir novas demandas.`]);
+  }
+  // fila Karen
+  if(aprov.length>0){
+    out.push(["i-info","✅",`<b>${aprov.length} cards aguardando aprovação</b> na fila de aprovação. Não são atrasos: representam o pipeline de publicação a validar.`]);
+  }
+  // sem responsável
+  if(noass.length>0){
+    const pct=Math.round(noass.length/Math.max(1,A.length)*100);
+    out.push([pct>25?"i-crit":"i-warn", pct>25?"🔴":"🟠",
+      `<b>${noass.length} atividades sem responsável</b> (${pct}%). Atribuir um dono melhora previsibilidade e rastreio do pace.`]);
+  }
+  // concentração responsável
+  const realResp=Object.entries(rc).filter(([k])=>k!=="—").sort((a,b)=>b[1]-a[1]);
+  if(realResp.length && state.resp==="__all__"){
+    const top=realResp[0]; const totalReal=realResp.reduce((a,b)=>a+b[1],0);
+    const pct=Math.round(top[1]/Math.max(1,totalReal)*100);
+    if(pct>=40) out.push(["i-warn","🟠",`<b>${shortName(top[0])}</b> concentra ${pct}% das atividades com responsável (${top[1]} cards). Avalie redistribuir carga.`]);
+    else out.push(["i-ok","🟢",`Carga relativamente distribuída entre a equipe; maior responsável é <b>${shortName(top[0])}</b> com ${pct}%.`]);
+  }
+  // concentração espaço
+  const espTop=Object.entries(ec).sort((a,b)=>b[1]-a[1])[0];
+  if(espTop && state.esp==="__all__"){
+    out.push(["i-info","🗂️",`O espaço com mais atividades em aberto é <b>${esc(espTop[0])}</b> (${espTop[1]} cards). Bom candidato a revisão de escopo ou repactuação.`]);
+  }
+  // em andamento vs total
+  out.push(["i-info","🔵",`<b>${prog.length}</b> em execução agora · <b>${A.length-prog.length-aprov.length}</b> ainda na fila de início.`]);
+  document.getElementById("insights").innerHTML = out.map(([c,i,t])=>
+    `<div class="insight ${c}"><span class="ico">${i}</span><div class="txt">${t}</div></div>`).join("");
+}
+
+/* ===================== RENDER AGENDA ===================== */
+function weekRange(){
+  const d=new Date(SNAPD); const wd=(d.getDay()+6)%7; // seg=0
+  const start=new Date(d); start.setDate(d.getDate()-wd);
+  const end=new Date(start); end.setDate(start.getDate()+6);
+  return [start,end];
+}
+function renderAgenda(){
+  const A=ACTIVE();
+  const today=A.filter(x=>x.du===SNAP);
+  const [ws,we]=weekRange();
+  const week=A.filter(x=>{const d=pd(x.du); return d&&d>=ws&&d<=we;});
+  const ms=new Date(SNAPD.getFullYear(),SNAPD.getMonth(),1), me=new Date(SNAPD.getFullYear(),SNAPD.getMonth()+1,0);
+  const month=A.filter(x=>{const d=pd(x.du); return d&&d>=ms&&d<=me;});
+  const over=A.filter(isOverdue);
+
+  document.getElementById("agendaKpis").innerHTML=[
+    kpi({emo:"📍",lbl:"Para hoje",val:today.length,cls:"k-brand",click:true,onclick:"setAgenda('hoje')",foot:fmtFull(SNAP)}),
+    kpi({emo:"📆",lbl:"Para esta semana",val:week.length,cls:"k-prog",click:true,onclick:"setAgenda('semana')",foot:"seg a dom"}),
+    kpi({emo:"🗓️",lbl:"Para este mês",val:month.length,cls:"k-ok",click:true,onclick:"setAgenda('mes')",foot:MESES[SNAPD.getMonth()]}),
+    kpi({emo:"🔴",lbl:"Atrasadas",val:over.length,cls:"k-crit",click:true,onclick:"setAgenda('atraso')",foot:"prazo vencido"}),
+  ].join("");
+
+  renderCalendar();
+  renderAgendaList();
+  renderLateList();
+  renderAprovList();
+  renderHistAgenda();
+}
+function renderLateList(){
+  const over=ACTIVE().filter(isOverdue).sort((a,b)=>(a.du||"").localeCompare(b.du||""));
+  document.getElementById("lateList").innerHTML = pageSlice('late',over).map(x=>taskRow(x,{asg:true})).join("")
+    || `<div class="empty"><span class="em">🟢</span>Nenhuma atrasada no escopo</div>`;
+  document.getElementById("latePager").innerHTML = pager('late',over.length);
+}
+function renderAprovList(){
+  const aprov=ACTIVE().filter(x=>x.st===AGUARD).sort((a,b)=>(a.du||"z").localeCompare(b.du||"z"));
+  document.getElementById("aprovList").innerHTML = pageSlice('aprov',aprov).map(x=>taskRow(x,{asg:true})).join("")
+    || `<div class="empty"><span class="em">✅</span>Fila vazia no escopo</div>`;
+  document.getElementById("aprovPager").innerHTML = pager('aprov',aprov.length);
+}
+function setAgenda(t){ agendaMode={type:t,day:null}; renderAgendaList(); renderCalendar(); }
+function renderAgendaList(){
+  const A=ACTIVE();
+  let items=[], title="", emo="📌";
+  if(agendaMode.day){
+    items=A.filter(x=>x.du===agendaMode.day); title="Prazos em "+fmtFull(agendaMode.day); emo="📅";
+  } else if(agendaMode.type==="hoje"){
+    items=A.filter(x=>x.du===SNAP); title="Atividades de hoje"; emo="📍";
+  } else if(agendaMode.type==="semana"){
+    const [ws,we]=weekRange(); items=A.filter(x=>{const d=pd(x.du);return d&&d>=ws&&d<=we;}); title="Atividades da semana"; emo="📆";
+  } else if(agendaMode.type==="mes"){
+    const ms=new Date(SNAPD.getFullYear(),SNAPD.getMonth(),1), me=new Date(SNAPD.getFullYear(),SNAPD.getMonth()+1,0);
+    items=A.filter(x=>{const d=pd(x.du);return d&&d>=ms&&d<=me;}); title="Atividades do mês"; emo="🗓️";
+  } else if(agendaMode.type==="atraso"){
+    items=A.filter(isOverdue); title="Atividades atrasadas"; emo="🔴";
+  }
+  items.sort((a,b)=>(a.du||"z").localeCompare(b.du||"z"));
+  document.getElementById("listEmo").textContent=emo;
+  document.getElementById("listTitle").textContent=title;
+  document.getElementById("listCount").textContent=items.length+" itens";
+  document.getElementById("agendaList").innerHTML = items.map(x=>taskRow(x,{asg:true})).join("")
+    || `<div class="empty"><span class="em">🍃</span>Nada agendado aqui</div>`;
+}
+function renderCalendar(){
+  const A=ACTIVE();
+  const byDay={};
+  A.forEach(x=>{ if(!x.du) return; const o=(byDay[x.du]=byDay[x.du]||{due:0,late:0,aprov:0,ajuste:0});
+    if(x.st===AGUARD) o.aprov++; else if(x.st==="Ajustes"){ o.ajuste++; if(isOverdue(x)) o.late++; } else if(isOverdue(x)) o.late++; else o.due++; });
+  document.getElementById("calMonth").textContent = MESES[calM]+" "+calY;
+  document.getElementById("calDow").innerHTML = DOW.map(d=>`<div class="cal-dow">${d}</div>`).join("");
+  const first=new Date(calY,calM,1); const startPad=first.getDay();
+  const dim=new Date(calY,calM+1,0).getDate();
+  const prevDim=new Date(calY,calM,0).getDate();
+  let cells=[];
+  for(let i=startPad-1;i>=0;i--) cells.push({d:prevDim-i,out:true});
+  for(let d=1;d<=dim;d++) cells.push({d,out:false});
+  while(cells.length%7!==0) cells.push({d:cells.length-(startPad+dim)+1,out:true});
+  const html=cells.map(c=>{
+    if(c.out) return `<div class="cal-cell out"><span class="cal-d">${c.d}</span></div>`;
+    const iso=`${calY}-${String(calM+1).padStart(2,"0")}-${String(c.d).padStart(2,"0")}`;
+    const info=byDay[iso]; const has=!!info;
+    const isToday=iso===SNAP; const sel=agendaMode.day===iso;
+    const wknd=[0,6].includes(new Date(calY,calM,c.d).getDay());
+    let mini="";
+    if(has){
+      let segs=[];
+      if(info.late) segs.push(`<span class="cal-cnt late">⚠${info.late}</span>`);
+      if(info.ajuste) segs.push(`<span class="cal-cnt ajuste" style="background:#E8833A;color:#fff">🔧${info.ajuste}</span>`);
+      if(info.due) segs.push(`<span class="cal-cnt due">${info.due}</span>`);
+      if(info.aprov) segs.push(`<span class="cal-cnt aprov">${info.aprov}</span>`);
+      mini=`<div class="cal-mini"><div class="seg">${segs.join("")}</div></div>`;
+    }
+    return `<div class="cal-cell ${has?'has':''} ${isToday?'today':''} ${sel?'sel':''} ${wknd?'weekend':''}" ${has?`onclick="pickDay('${iso}')"`:''}>
+      <span class="cal-d">${c.d}</span>${mini}</div>`;
+  }).join("");
+  document.getElementById("calGrid").innerHTML=html;
+}
+function pickDay(iso){ agendaMode={type:"dia",day:(agendaMode.day===iso?null:iso)}; renderCalendar(); renderAgendaList(); }
+function calNav(delta){ calM+=delta; if(calM<0){calM=11;calY--;} if(calM>11){calM=0;calY++;} renderCalendar(); }
+
+/* ===================== RENDER PACE ===================== */
+function median(arr){ if(!arr.length) return 0; const s=[...arr].sort((a,b)=>a-b); const m=Math.floor(s.length/2); return s.length%2?s[m]:Math.round((s[m-1]+s[m])/2); }
+let paceFilter={status:"", esp:""};
+function renderPace(){
+  const D=DONE();
+  const Ap=ACTIVE().filter(x=>x.st!==AGUARD); // pace exclui fila de aprovação
+  const leads=D.map(x=>{const c=pd(x.cr),r=pd(x.rs); return (c&&r&&r>=c)?days(c,r):null;}).filter(v=>v!==null);
+  const mean=leads.length?Math.round(leads.reduce((a,b)=>a+b,0)/leads.length):0;
+  const med=median(leads);
+  const p90=leads.length?[...leads].sort((a,b)=>a-b)[Math.floor(leads.length*0.9)]:0;
+  const ages=Ap.map(ageOf).filter(v=>v!==null);
+  const ageMean=ages.length?Math.round(ages.reduce((a,b)=>a+b,0)/ages.length):0;
+
+  document.getElementById("paceKpis").innerHTML=[
+    kpi({emo:"⏱️",lbl:"Lead time médio",val:mean,suf:"dias",cls:"k-prog",foot:"criação → conclusão"}),
+    kpi({emo:"🎯",lbl:"Lead time mediano",val:med,suf:"dias",cls:"k-ok",foot:"metade conclui antes"}),
+    kpi({emo:"🐢",lbl:"P90 de conclusão",val:p90,suf:"dias",cls:"k-warn",foot:"9 em cada 10 dentro disso"}),
+    kpi({emo:"⌛",lbl:"Tempo médio em aberto",val:ageMean,suf:"dias",cls:ageMean>mean?"k-crit":"k-prog",foot:"ativas, exclui aprovações"}),
+  ].join("");
+
+  // aging buckets (exclui aprovações)
+  const buckets={"0-7d":0,"8-15d":0,"16-30d":0,"31-60d":0,"60d+":0};
+  ages.forEach(a=>{ if(a<=7)buckets["0-7d"]++; else if(a<=15)buckets["8-15d"]++; else if(a<=30)buckets["16-30d"]++; else if(a<=60)buckets["31-60d"]++; else buckets["60d+"]++; });
+  const agingColors={"0-7d":"var(--ok)","8-15d":"#7CB342","16-30d":"var(--warn)","31-60d":"#E0700C","60d+":"var(--crit)"};
+  columns(document.getElementById("agingChart"), Object.entries(buckets).map(([k,v])=>({label:k,v,color:agingColors[k]})));
+  const oldPct=ages.length?Math.round((buckets["31-60d"]+buckets["60d+"])/ages.length*100):0;
+  document.getElementById("agingNote").innerHTML=`<b>${oldPct}%</b> das ativas (fora a fila de aprovação) estão em aberto há mais de 30 dias`+(oldPct>50?`. Sinal claro de acúmulo: vale uma força-tarefa de fechamento.`:`. Acúmulo sob controle, mantenha o ritmo.`);
+
+  // throughput por semana
+  const tw={};
+  D.forEach(x=>{ const r=pd(x.rs); if(!r) return; const ws=new Date(r); ws.setDate(r.getDate()-((r.getDay()+6)%7)); const k=ws.toISOString().slice(0,10); tw[k]=(tw[k]||0)+1; });
+  const weeks=Object.keys(tw).sort().slice(-8);
+  columns(document.getElementById("throughChart"), weeks.map(w=>({label:fmt(w),v:tw[w],color:"var(--s-prog)"})));
+  const lastW=weeks.length?tw[weeks[weeks.length-1]]:0;
+  const avgW=weeks.length?Math.round(weeks.reduce((a,w)=>a+tw[w],0)/weeks.length):0;
+  document.getElementById("throughNote").innerHTML=`Média de <b>${avgW}</b> entregas/semana no período · última semana fechada: <b>${lastW}</b>.`;
+
+  renderOldest();
+  renderKaren();
+}
+function renderOldest(){
+  let base=ACTIVE().filter(x=>x.st!==AGUARD && ageOf(x)!==null);
+  if(paceFilter.status) base=base.filter(x=>x.st===paceFilter.status);
+  if(paceFilter.esp) base=base.filter(x=>x.pj===paceFilter.esp);
+  base.sort((a,b)=>ageOf(b)-ageOf(a));
+  document.getElementById("oldestList").innerHTML = pageSlice('oldest',base).map(x=>taskRow(x,{asg:true,esp:true,age:true,due:false})).join("")
+    || `<div class="empty"><span class="em">🍃</span>Nada no escopo e filtros atuais</div>`;
+  document.getElementById("oldestPager").innerHTML = pager('oldest',base.length);
+}
+
+/* ===================== RENDER APROVAÇÕES KAREN ===================== */
+let karenFilter={esp:"", due:"all"};
+function karenBucket(x){
+  if(!x.du) return "none";
+  const d=pd(x.du);
+  if(d<SNAPD) return "over";
+  if(x.du===SNAP) return "today";
+  if(d<=weekEndSun()) return "week";
+  return "next";
+}
+function karenDuePass(x){
+  const b=karenBucket(x);
+  switch(karenFilter.due){
+    case "over": return b==="over";
+    case "today": return b==="today";
+    case "week": return b==="week";
+    case "next": return b==="next";
+    default: return true;
+  }
+}
+function renderKaren(){
+  const Q=ACTIVE().filter(x=>x.st===AGUARD).filter(x=>!karenFilter.esp||x.pj===karenFilter.esp);
+  document.getElementById("karenBig").innerHTML = `${Q.length}<small>na fila do escopo</small>`;
+  const ages=Q.map(ageOf).filter(v=>v!==null);
+  const ageMean=ages.length?Math.round(ages.reduce((a,b)=>a+b,0)/ages.length):0;
+  const espSet=new Set(Q.map(x=>x.pj));
+  const c={over:0,today:0,week:0,next:0,none:0};
+  Q.forEach(x=>{ c[karenBucket(x)]++; });
+  document.getElementById("karenKpis").innerHTML=[
+    kpi({emo:"✅",lbl:"Cards na fila",val:Q.length,cls:"k-aprov",foot:"aguardando aprovação"}),
+    kpi({emo:"⌛",lbl:"Tempo médio em aberto",val:ageMean,suf:"dias",cls:"k-prog",foot:"desde a criação"}),
+    kpi({emo:"🔴",lbl:"Prazo vencido na fila",val:c.over,cls:c.over>0?"k-crit":"k-ok",foot:"due já passou (não conta no pace)"}),
+    kpi({emo:"🗂️",lbl:"Espaços envolvidos",val:espSet.size,cls:"k-brand",foot:"clientes com itens na fila"}),
+  ].join("");
+  const segs=[
+    ["all","Todas",Q.length,false],
+    ["over","Atrasadas",c.over,true],
+    ["today","Para hoje",c.today,false],
+    ["week","Para esta semana",c.week,false],
+    ["next","Próximas",c.next,false],
+  ];
+  document.getElementById("karenDueSeg").innerHTML = segs.map(([k,lbl,n,crit])=>
+    `<button data-due="${k}" class="${karenFilter.due===k?"on":""}${crit&&n>0?" crit":""}">${lbl} <span class="n">${n}</span></button>`).join("");
+  renderKarenList();
+  renderHistKaren();
+}
+function renderKarenList(){
+  let base=ACTIVE().filter(x=>x.st===AGUARD);
+  if(karenFilter.esp) base=base.filter(x=>x.pj===karenFilter.esp);
+  base=base.filter(karenDuePass);
+  // atrasadas e com prazo: ordena por prazo; demais: por tempo na fila
+  if(karenFilter.due==="over"||karenFilter.due==="today"||karenFilter.due==="week"||karenFilter.due==="next")
+    base.sort((a,b)=>(a.du||"").localeCompare(b.du||""));
+  else base.sort((a,b)=>(ageOf(b)??-1)-(ageOf(a)??-1));
+  const vazio={all:"Sem cards na fila para este filtro",over:"Nenhum card com prazo vencido na fila 🎉",today:"Nada com prazo para hoje",week:"Nada previsto para o restante desta semana",next:"Nenhuma publicação futura agendada"}[karenFilter.due];
+  document.getElementById("karenList").innerHTML = pageSlice('karen',base).map(x=>taskRow(x,{asg:true,esp:true,age:true,due:true})).join("")
+    || `<div class="empty"><span class="em">✅</span>${vazio}</div>`;
+  document.getElementById("karenPager").innerHTML = pager('karen',base.length);
+}
+
+let ajusteFilter={esp:""};
+function renderAjustes(){
+  const A=ACTIVE().filter(x=>x.st==="Ajustes");
+  const over=A.filter(isOverdue).length;
+  const resps=new Set(A.map(x=>x.as)); const esps=new Set(A.map(x=>x.pj));
+  document.getElementById("ajusteKpis").innerHTML=[
+    kpi({emo:"🔧",lbl:"Cards em ajuste",val:A.length,cls:A.length>0?"k-warn":"k-ok",foot:"retrabalho no escopo"}),
+    kpi({emo:"🔴",lbl:"Ajustes atrasados",val:over,cls:over>0?"k-crit":"k-ok",foot:"prazo já vencido"}),
+    kpi({emo:"👥",lbl:"Responsáveis",val:resps.size,cls:"k-prog",foot:"com retrabalho em curso"}),
+    kpi({emo:"🗂️",lbl:"Espaços",val:esps.size,cls:"k-brand",foot:"clientes com ajustes"}),
+  ].join("");
+  const rc={}; A.forEach(x=>rc[x.as]=(rc[x.as]||0)+1);
+  barH(document.getElementById("ajusteByResp"), Object.entries(rc).sort((a,b)=>b[1]-a[1]).map(([k,v])=>({label:shortName(k),v,color:k==="—"?"var(--gray)":"#E8833A"})));
+  const ec={}; A.forEach(x=>ec[x.pj]=(ec[x.pj]||0)+1);
+  barH(document.getElementById("ajusteByEsp"), Object.entries(ec).sort((a,b)=>b[1]-a[1]).map(([k,v],i)=>({label:k,v,color:ESP_PALETTE[i%ESP_PALETTE.length]})));
+  let base=A.slice();
+  if(ajusteFilter.esp) base=base.filter(x=>x.pj===ajusteFilter.esp);
+  base.sort((a,b)=>(a.du||"z").localeCompare(b.du||"z"));
+  document.getElementById("ajusteCount").textContent = base.length+" no escopo";
+  document.getElementById("ajusteList").innerHTML = pageSlice('ajuste',base).map(x=>taskRow(x,{asg:true,esp:true,age:true,due:true})).join("")
+    || `<div class="empty"><span class="em">🔧</span>Nenhum card em ajuste para este filtro 🎉</div>`;
+  document.getElementById("ajustePager").innerHTML = pager('ajuste',base.length);
+}
+
+/* ===================== RENDER ATIVIDADES ===================== */
+function renderTable(){
+  let src;
+  if(tblState.sit==="active") src=DATA.filter(x=>x.b==="active");
+  else if(tblState.sit==="done") src=DATA.filter(x=>x.b==="done");
+  else src=DATA;
+  src=scoped(src);
+  let rows=src.filter(x=>{
+    if(tblState.status && x.st!==tblState.status) return false;
+    if(tblState.prio && x.pr!==tblState.prio) return false;
+    if(tblState.late && !isOverdue(x)) return false;
+    if(tblState.noass && x.as!=="—") return false;
+    if(tblState.q){ const q=tblState.q.toLowerCase(); if(!(x.s||"").toLowerCase().includes(q) && !x.k.toLowerCase().includes(q)) return false; }
+    return true;
+  });
+  const s=tblState.sort, dir=tblState.dir;
+  rows.sort((a,b)=>{
+    let va,vb;
+    if(s==="age"){ va=ageOf(a)??-1; vb=ageOf(b)??-1; }
+    else if(s==="du"||s==="cr"){ va=a[s]||"9999"; vb=b[s]||"9999"; }
+    else { va=(a[s]||"").toString().toLowerCase(); vb=(b[s]||"").toString().toLowerCase(); }
+    if(va<vb) return -1*dir; if(va>vb) return 1*dir; return 0;
+  });
+  document.getElementById("tblCount").innerHTML=`Exibindo <b>${rows.length}</b> atividade(s) no escopo e filtros atuais`;
+  document.getElementById("tblBody").innerHTML = rows.map(x=>{
+    const age=ageOf(x); const late=isOverdue(x);
+    const asgCell = x.as==="—"
+      ? `<span class="asgcell none"><span class="av" style="background:#B6B2A8">?</span><span class="nm">sem dono</span></span>`
+      : `<span class="asgcell"><span class="av" style="background:${avatarColor(x.as)}">${initials(x.as)}</span><span class="nm">${esc(shortName(x.as))}</span></span>`;
+    return `<tr onclick="openCard('${x.k}')">
+      <td class="c-key">${x.k}</td>
+      <td class="c-sum" title="${esc(x.s)}">${esc(x.s)}</td>
+      <td><span class="espchip" style="background:${espColor(x.pj)}" title="${esc(x.pj)}">${esc(x.pj)}</span></td>
+      <td>${asgCell}</td>
+      <td>${badge(x.st)}</td>
+      <td>${pchip(x.pr)}</td>
+      <td class="c-num">${fmt(x.cr)}</td>
+      <td class="c-num" style="${late?'color:var(--crit);font-weight:700':''}">${late?'⚠ ':''}${fmt(x.du)}</td>
+      <td class="c-num">${age!==null?age+'d':'—'}</td>
+      <td onclick="event.stopPropagation()" style="text-align:center">${waBtn(x)}</td>
+    </tr>`;
+  }).join("") || `<tr><td colspan="10" class="empty"><span class="em">🔍</span>Nenhuma atividade encontrada</td></tr>`;
+}
+
+/* ===================== FILTROS / NAV ===================== */
+function fillSelectors(){
+  const resp=[...new Set(DATA.filter(x=>x.b==="active").map(x=>x.as))].sort((a,b)=>(a==="—"?1:b==="—"?-1:a.localeCompare(b)));
+  const fr=document.getElementById("fResp");
+  fr.innerHTML=`<option value="__all__">Todos os responsáveis</option>`+resp.map(r=>`<option value="${esc(r)}">${r==="—"?"— Sem responsável":esc(r)}</option>`).join("");
+  const esp=[...new Set(DATA.filter(x=>x.b==="active").map(x=>x.pj))].sort();
+  const fe=document.getElementById("fEsp");
+  fe.innerHTML=`<option value="__all__">Todos os espaços</option>`+esp.map(e=>`<option value="${esc(e)}">${esc(e)}</option>`).join("");
+  // status filter na tabela
+  const sts=[...new Set(DATA.map(x=>x.st))];
+  document.getElementById("fStatus").innerHTML=`<option value="">Todos os status</option>`+sts.map(s=>`<option value="${esc(s)}">${esc(s)}</option>`).join("");
+  // pace: status (sem fila Karen) e espaços
+  const actSts=[...new Set(DATA.filter(x=>x.b==="active"&&x.st!==AGUARD).map(x=>x.st))];
+  document.getElementById("oldStatus").innerHTML=`<option value="">Todos os status</option>`+actSts.map(s=>`<option value="${esc(s)}">${esc(s)}</option>`).join("");
+  document.getElementById("oldEsp").innerHTML=`<option value="">Todos os espaços</option>`+esp.map(e=>`<option value="${esc(e)}">${esc(e)}</option>`).join("");
+  // karen: espaços com cards na fila
+  const kEsp=[...new Set(DATA.filter(x=>x.b==="active"&&x.st===AGUARD).map(x=>x.pj))].sort();
+  document.getElementById("karenEsp").innerHTML=`<option value="">Todos os espaços</option>`+kEsp.map(e=>`<option value="${esc(e)}">${esc(e)}</option>`).join("");
+  // ajustes: espaços com cards em retrabalho
+  const ajEsp=[...new Set(DATA.filter(x=>x.b==="active"&&x.st==="Ajustes").map(x=>x.pj))].sort();
+  document.getElementById("ajusteEsp").innerHTML=`<option value="">Todos os espaços</option>`+ajEsp.map(e=>`<option value="${esc(e)}">${esc(e)}</option>`).join("");
+  // log cards: espaços e usuários presentes no log
+  const lEsp=[...new Set(LOGDATA.map(e=>e.pj).filter(Boolean))].sort();
+  document.getElementById("logEsp").innerHTML=`<option value="">Todos os espaços</option>`+lEsp.map(e=>`<option value="${esc(e)}">${esc(e)}</option>`).join("");
+  const lUsr=[...new Set(LOGDATA.map(e=>e.au).filter(Boolean))].sort();
+  document.getElementById("logUsr").innerHTML=`<option value="">Todos os usuários</option>`+lUsr.map(u=>`<option value="${esc(u)}">${esc(u)}</option>`).join("");
+}
+function renderScopeBar(){
+  const A=ACTIVE();
+  const stCount={};
+  A.forEach(x=>stCount[x.st]=(stCount[x.st]||0)+1);
+  const rows=Object.entries(stCount).sort((a,b)=>b[1]-a[1]);
+  const total=A.length;
+  const bar=document.getElementById("scopeBar");
+  const leg=document.getElementById("scopeLeg");
+  if(!total){ bar.innerHTML=""; leg.innerHTML=`<span class="li">Sem ativas no escopo</span>`; return; }
+  bar.innerHTML=rows.map(([k,v])=>{
+    const pc=v/total*100;
+    return `<div class="scope-seg" style="flex:0 0 ${pc}%;background:${statusColor(k)}" title="${esc(k)}: ${v} (${Math.round(pc)}%)">${pc>7?`<span>${v}</span>`:''}</div>`;
+  }).join("");
+  leg.innerHTML=rows.map(([k,v])=>`<div class="li"><span class="sw" style="background:${statusColor(k)}"></span>${esc(k)} <b>${v}</b></div>`).join("");
+}
+function updateScope(){ document.getElementById("scopeCount").textContent=ACTIVE().length; renderScopeBar(); }
+function renderAll(){ updateScope(); renderExec(); renderAgenda(); renderPace(); renderAjustes(); renderTable(); }
+
+/* ---------- Log Cards ---------- */
+let logFilter={esp:"", usr:"", tipo:""};
+const LOG_META={
+  criado:{ico:"🆕", lbl:"Criado", cls:"lg-new"},
+  concluido:{ico:"✅", lbl:"Concluído", cls:"lg-done"},
+  comentario:{ico:"💬", lbl:"Comentário", cls:"lg-cmt"}
+};
+function logScoped(){
+  return LOGDATA.filter(e=>{
+    if(logFilter.esp && e.pj!==logFilter.esp) return false;
+    if(logFilter.usr && e.au!==logFilter.usr) return false;
+    if(logFilter.tipo && e.tipo!==logFilter.tipo) return false;
+    return true;
+  });
+}
+function fmtDM(s){ if(!s)return"—"; const p=s.slice(0,10).split("-"); return p[2]+"/"+p[1]; }
+function renderLog(){ renderLogInsights(); renderLogList(); }
+function renderLogInsights(){
+  const L=logScoped();
+  const el=document.getElementById("logInsights");
+  if(!L.length){ el.innerHTML=`<div class="empty"><span class="em">🧾</span>Sem eventos para este filtro</div>`; return; }
+  const cri=L.filter(e=>e.tipo==="criado"), con=L.filter(e=>e.tipo==="concluido"), cmt=L.filter(e=>e.tipo==="comentario");
+  const cards=new Set(L.map(e=>e.k));
+  const cnt=(arr,key)=>{const o={};arr.forEach(e=>{const v=e[key]||"—";o[v]=(o[v]||0)+1;});return Object.entries(o).sort((a,b)=>b[1]-a[1]);};
+  const espTop=cnt(L,"pj")[0];
+  const cmtAutor=cnt(cmt,"au")[0];
+  const cardCmt=cnt(cmt,"k")[0];
+  const dia=cnt(L,"ts")[0];
+  // card mais movimentado (mais eventos no total)
+  const movByCard={}; L.forEach(e=>movByCard[e.k]=(movByCard[e.k]||0)+1);
+  const cardMov=Object.entries(movByCard).sort((a,b)=>b[1]-a[1])[0];
+  const saldo=con.length-cri.length;
+  const items=[
+    {ic:"📌", v:L.length, t:"eventos no período", s:cards.size+" cards distintos"},
+    {ic:"🆕", v:cri.length, t:"cards criados", s:"novas demandas abertas"},
+    {ic:"✅", v:con.length, t:"cards concluídos", s:(saldo>=0?"+"+saldo:saldo)+" no saldo vs criados"},
+    {ic:"💬", v:cmt.length, t:"comentários", s:(cmtAutor?cmtAutor[1]+" de "+cmtAutor[0].split(" ")[0]:"—")+" no topo"},
+    {ic:"🗂️", v:espTop?espTop[1]:0, t:"no espaço mais ativo", s:espTop?espTop[0]:"—"},
+    {ic:"🔥", v:cardMov?cardMov[1]:0, t:"mudanças no card líder", s:cardMov?cardMov[0]:"—"},
+    {ic:"🗣️", v:cmtAutor?cmtAutor[1]:0, t:"comentários do mais ativo", s:cmtAutor?cmtAutor[0]:"—"},
+    {ic:"📅", v:dia?dia[1]:0, t:"eventos no dia de pico", s:dia?fmtDM(dia[0]):"—"},
+  ];
+  el.innerHTML=items.map(i=>`<div class="lgi"><div class="lgi-ic">${i.ic}</div><div class="lgi-b"><div class="lgi-v">${i.v}</div><div class="lgi-t">${esc(i.t)}</div><div class="lgi-s">${esc(i.s)}</div></div></div>`).join("");
+}
+function logRow(e){
+  const m=LOG_META[e.tipo]||{ico:"•",lbl:e.tipo,cls:""};
+  const url="https://connectindigital.atlassian.net/browse/"+e.k;
+  return `<div class="logrow">
+    <div class="lg-when"><b>${fmtDM(e.ts)}</b></div>
+    <div class="lg-tag ${m.cls}">${m.ico} ${m.lbl}</div>
+    <div class="lg-main">
+      <a class="lg-key" href="${url}" target="_blank" rel="noopener">${esc(e.k)}</a>
+      <span class="lg-title">${esc(e.s||"")}</span>
+    </div>
+    <div class="lg-meta">
+      <span class="espchip" style="background:${espColor(e.pj)}" title="${esc(e.pj)}">${esc(e.pj)}</span>
+      ${e.au?`<span class="lg-who">👤 ${esc(e.au)}</span>`:""}
+    </div>
+  </div>`;
+}
+function renderLogList(){
+  const L=logScoped();
+  document.getElementById("logList").innerHTML = pageSlice('log',L).map(logRow).join("")
+    || `<div class="empty"><span class="em">🧾</span>Sem eventos para este filtro</div>`;
+  document.getElementById("logPager").innerHTML = pager('log',L.length);
+}
+
+function switchView(v){
+  document.querySelectorAll(".tab").forEach(t=>t.classList.toggle("active",t.dataset.v===v));
+  document.querySelectorAll(".view").forEach(s=>s.classList.toggle("active",s.id==="v-"+v));
+  if(v==="log") renderLog();
+  window.scrollTo({top:0,behavior:"smooth"});
+}
+
+function resetPages(){ pg={late:1,aprov:1,oldest:1,karen:1,ajuste:1,log:1}; }
+
+function boot(){
+  document.getElementById("snapdate").textContent=SNAP_TS;
+  fillSelectors();
+  document.getElementById("fResp").addEventListener("change",e=>{state.resp=e.target.value;resetPages();renderAll();});
+  document.getElementById("fEsp").addEventListener("change",e=>{state.esp=e.target.value;resetPages();renderAll();});
+  document.getElementById("btnClear").addEventListener("click",()=>{
+    state={resp:"__all__",esp:"__all__"};
+    document.getElementById("fResp").value="__all__"; document.getElementById("fEsp").value="__all__";
+    resetPages(); renderAll();
+  });
+  document.getElementById("tabs").addEventListener("click",e=>{const b=e.target.closest(".tab"); if(b) switchView(b.dataset.v);});
+  document.getElementById("calPrev").addEventListener("click",()=>calNav(-1));
+  document.getElementById("calNext").addEventListener("click",()=>calNav(1));
+  // filtros do pace e da aba Karen
+  document.getElementById("oldStatus").addEventListener("change",e=>{paceFilter.status=e.target.value;pg.oldest=1;renderOldest();});
+  document.getElementById("oldEsp").addEventListener("change",e=>{paceFilter.esp=e.target.value;pg.oldest=1;renderOldest();});
+  document.getElementById("karenEsp").addEventListener("change",e=>{karenFilter.esp=e.target.value;pg.karen=1;renderKaren();});
+  document.getElementById("ajusteEsp").addEventListener("change",e=>{ajusteFilter.esp=e.target.value;pg.ajuste=1;renderAjustes();});
+  document.getElementById("karenDueSeg").addEventListener("click",e=>{const b=e.target.closest("button[data-due]"); if(!b)return; karenFilter.due=b.dataset.due; pg.karen=1; renderKaren();});
+  document.getElementById("trendGran").addEventListener("click",e=>{const b=e.target.closest("button[data-g]"); if(!b)return; gran=b.dataset.g; document.querySelectorAll("#trendGran button").forEach(x=>x.classList.toggle("on",x===b)); renderTrends();});
+  document.getElementById("logEsp").addEventListener("change",e=>{logFilter.esp=e.target.value;pg.log=1;renderLog();});
+  document.getElementById("logUsr").addEventListener("change",e=>{logFilter.usr=e.target.value;pg.log=1;renderLog();});
+  document.getElementById("logTipo").addEventListener("change",e=>{logFilter.tipo=e.target.value;pg.log=1;renderLog();});
+  // tabela filtros
+  document.getElementById("search").addEventListener("input",e=>{tblState.q=e.target.value;renderTable();});
+  document.getElementById("fSit").addEventListener("change",e=>{tblState.sit=e.target.value;renderTable();});
+  document.getElementById("fStatus").addEventListener("change",e=>{tblState.status=e.target.value;renderTable();});
+  document.getElementById("fPrio").addEventListener("change",e=>{tblState.prio=e.target.value;renderTable();});
+  document.getElementById("chipLate").addEventListener("click",e=>{tblState.late=!tblState.late;e.target.classList.toggle("on",tblState.late);renderTable();});
+  document.getElementById("chipNoAssignee").addEventListener("click",e=>{tblState.noass=!tblState.noass;e.target.classList.toggle("on",tblState.noass);renderTable();});
+  document.querySelectorAll("#tbl thead th").forEach(th=>{
+    th.addEventListener("click",()=>{ const s=th.dataset.s; if(!s) return; if(tblState.sort===s) tblState.dir*=-1; else {tblState.sort=s;tblState.dir=1;} renderTable(); });
+  });
+  renderAll();
+}
+/* dispara já se o documento estiver pronto, senão aguarda o evento */
+
+/* ====== CARGA DE DADOS AO VIVO DO JIRA (Cowork) ====== */
+const CLOUD_ID="f2b61868-73e4-4198-8a6a-bb7a46feab27";
+const JIRA_TOOL="mcp__23f5ac1f-1a30-48e1-a405-eb8ad82547cc__searchJiraIssuesUsingJql";
+const DATA_FIELDS=["summary","status","priority","assignee","project","issuetype","created","duedate","resolutiondate"];
+function _jparse(r){
+  if(!r) throw new Error("Sem resposta do Jira");
+  if(r.isError) throw new Error((r.content&&r.content[0]&&r.content[0].text)||"Erro do Jira");
+  let d=r.structuredContent;
+  if(!d && r.content && r.content[0] && r.content[0].text){ d=JSON.parse(r.content[0].text); }
+  if(!d || !d.issues) throw new Error("Resposta sem dados (issues)");
+  return d;
+}
+async function _call(jql, fields, token, mr){
+  const args={cloudId:CLOUD_ID, jql:jql, fields:fields, maxResults:mr, responseContentFormat:"markdown"};
+  if(token) args.nextPageToken=token;
+  return _jparse(await window.cowork.callMcpTool(JIRA_TOOL, args));
+}
+/* paginação com redução adaptativa de tamanho de página:
+   começa em 100; se a resposta vier grande demais (erro), reduz e tenta de novo
+   a MESMA posição (mesmo token). Mantém o tamanho reduzido nas próximas páginas. */
+async function _jsearch(jql, fields, onProgress){
+  let token=null, out=[], mr=100, pages=0;
+  while(pages<400){
+    let d;
+    try{ d=await _call(jql, fields, token, mr); }
+    catch(e){ if(mr>6){ mr=Math.max(6, Math.floor(mr/2)); continue; } throw e; }
+    const nodes=(d.issues&&d.issues.nodes)||[];
+    out=out.concat(nodes);
+    pages++;
+    if(onProgress) onProgress(out.length);
+    const pi=(d.issues&&d.issues.pageInfo)||{};
+    if(pi.hasNextPage && pi.endCursor){ token=pi.endCursor; } else break;
+  }
+  return out;
+}
+function _d10(iso){ return iso? String(iso).slice(0,10) : null; }
+function _disp(u){ return (u&&u.displayName)||null; }
+function mapIssue(n){
+  const f=n.fields||{}; const sc=(f.status&&f.status.statusCategory)||{};
+  return {
+    k:n.key, s:f.summary||"",
+    st:(f.status&&f.status.name)||"",
+    sc:sc.name||"",
+    pr:(f.priority&&f.priority.name)||"Medium",
+    as:_disp(f.assignee)||"—",
+    pj:(f.project&&f.project.name)||"",
+    pk:(f.project&&f.project.key)||"",
+    it:(f.issuetype&&f.issuetype.name)||"",
+    sub:!!(f.issuetype&&f.issuetype.subtask),
+    cr:_d10(f.created), du:_d10(f.duedate), rs:_d10(f.resolutiondate),
+    b: sc.key==="done" ? "done" : "active"
+  };
+}
+async function buildLog(prog){
+  const out=[];
+  const cri=await _jsearch('created >= -7d ORDER BY created DESC', ["summary","project","reporter","creator","assignee"], n=>prog&&prog("atividades",n));
+  cri.forEach(n=>{ const f=n.fields||{}; out.push({
+    k:n.key, s:f.summary||"", pj:(f.project&&f.project.name)||"",
+    au:_disp(f.reporter)||_disp(f.creator)||_disp(f.assignee)||"—",
+    ts:_d10(f.created), tipo:"criado" }); });
+  const con=await _jsearch('statusCategory = Done AND statusCategoryChangedDate >= -7d ORDER BY updated DESC', ["summary","project","assignee","resolutiondate","updated"]);
+  con.forEach(n=>{ const f=n.fields||{}; out.push({
+    k:n.key, s:f.summary||"", pj:(f.project&&f.project.name)||"",
+    au:_disp(f.assignee)||"—",
+    ts:_d10(f.resolutiondate)||_d10(f.updated), tipo:"concluido" }); });
+  const cutoff=new Date(Date.now()-7*86400000);
+  const upd=await _jsearch('updated >= -7d ORDER BY updated DESC', ["summary","project","comment"]);
+  upd.forEach(n=>{ const f=n.fields||{}; const cs=(f.comment&&f.comment.comments)||[];
+    cs.forEach(c=>{ const cd=c.created? new Date(c.created):null;
+      if(cd && cd>=cutoff){ out.push({
+        k:n.key, s:f.summary||"", pj:(f.project&&f.project.name)||"",
+        au:_disp(c.author)||"—", ts:_d10(c.created), tipo:"comentario" }); }
+    });
+  });
+  return out;
+}
+function _overlay(html){
+  let el=document.getElementById("_liveov");
+  if(!el){ el=document.createElement("div"); el.id="_liveov";
+    el.style.cssText="position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:rgba(247,246,242,.96);font-family:inherit;color:#3A3A38;text-align:center;padding:24px;";
+    document.body.appendChild(el); }
+  el.innerHTML=html;
+}
+function _loadmsg(stage,n){
+  _overlay('<div><div style="font-size:15px;font-weight:600;margin-bottom:6px;">Carregando dados do Jira…</div><div style="font-size:13px;color:#7a766c;">'+stage+': <b>'+n+'</b> registros</div><div style="font-size:11.5px;color:#9a958a;margin-top:8px;">Connect-IN · pode levar alguns segundos</div></div>');
+}
+function _hideov(){ const el=document.getElementById("_liveov"); if(el) el.remove(); }
+async function bootLive(){
+  try{
+    if(!(window.cowork && typeof window.cowork.callMcpTool==="function")){
+      _overlay('<div style="max-width:460px"><div style="font-size:16px;font-weight:700;margin-bottom:10px;">Abra este painel pelo Cowork</div><div style="font-size:13.5px;line-height:1.5;color:#5a564c;">Este painel puxa os dados <b>ao vivo do Jira</b> e isso só funciona dentro do Claude / Cowork.<br><br>Abra o card <b>“Connect Atividades Jira”</b> na aba <b>“Live artifacts”</b> da barra lateral do Cowork (não abra o arquivo HTML solto no navegador).</div></div>');
+      return;
+    }
+    _loadmsg("emissão",0);
+    const all=await _jsearch('created >= "2015-01-01" ORDER BY created DESC', DATA_FIELDS, n=>_loadmsg("issues",n));
+    DATA = all.map(mapIssue);
+    _loadmsg("atividades",0);
+    LOGDATA = await buildLog(_loadmsg);
+    _hideov();
+    boot();
+    _mountEmailBtn();
+  }catch(e){
+    _overlay('<div style="max-width:480px"><div style="font-size:15px;font-weight:700;margin-bottom:8px;color:#C0492B;">Não foi possível carregar o Jira</div><div style="font-size:13px;line-height:1.5;max-width:460px;">'+((e&&e.message)||e)+'</div><div style="font-size:11.5px;color:#9a958a;margin-top:10px;">Tente o botão de recarregar no topo do painel. Se persistir, me avise com esta mensagem.</div></div>');
+  }
+}
+/* ===== Botão: gerar e-mail da Visão Executiva (dados já carregados) ===== */
+const FULL_DASH="file:///Users/fernandofarias/Documents/Claude%20(IA)/Connect-IN_Dashboard_Completo.html";
+const GMAIL_TOOL="mcp__deffdf7e-01b7-4d31-9e1e-a4ad1e2b3adf__create_draft";
+const MAIL_TO=["fernando.sfarias@hotmail.com","karendstadler@gmail.com"];
+function _by(arr,f){const o={};arr.forEach(x=>{const k=f(x);o[k]=(o[k]||0)+1;});return Object.entries(o).sort((a,b)=>b[1]-a[1]);}
+function _t(el){return el?el.textContent.trim():"";}
+function _kcell(v,l,c){return '<td style="padding:12px;border:1px solid #E8E7E2;border-top:3px solid '+c+';border-radius:10px;text-align:center;font-family:Arial,sans-serif;background:#fff;width:33%"><div style="font-size:24px;font-weight:700;color:#1E1E1E">'+v+'</div><div style="font-size:10px;color:#6E6B63;text-transform:uppercase;letter-spacing:.4px;margin-top:4px">'+l+'</div></td>';}
+function _bar(label,v,total,color){var pct=total?Math.round(v/total*100):0;return '<table style="width:100%;border-collapse:collapse;margin:2px 0"><tr><td style="width:160px;font-family:Arial,sans-serif;font-size:12px;color:#26241F">'+esc(label)+'</td><td style="padding:0 6px"><div style="background:#EEEDEA;border-radius:4px;height:12px"><div style="width:'+pct+'%;background:'+color+';height:12px;border-radius:4px"></div></div></td><td style="width:34px;text-align:right;font-family:Arial,sans-serif;font-size:12px;font-weight:700">'+v+'</td></tr></table>';}
+function _barlist(entries,total,color,relabel){return entries.slice(0,8).map(function(e){return _bar(relabel?relabel(e[0]):e[0], e[1], total, color);}).join("");}
+function _insColor(cls){return cls.indexOf("i-crit")>=0?"#D64533":cls.indexOf("i-warn")>=0?"#E8920C":cls.indexOf("i-ok")>=0?"#2E9E5B":"#2F7FE0";}
+function _scrapeInsights(sel){
+  var nodes=Array.from(document.querySelectorAll(sel+" .insight"));
+  if(!nodes.length) return '<div style="color:#989898;font-family:Arial,sans-serif;font-size:12px;font-style:italic">Sem leituras para este escopo.</div>';
+  return nodes.map(function(d){var tx=d.querySelector(".txt");
+    return '<table style="width:100%;border-collapse:collapse;margin:6px 0"><tr><td style="background:#fff;border:1px solid #E8E7E2;border-left:4px solid '+_insColor(d.className)+';border-radius:8px;padding:10px 12px;font-family:Arial,sans-serif;font-size:13px;line-height:1.5"><span style="margin-right:6px">'+_t(d.querySelector(".ico"))+'</span>'+(tx?tx.innerHTML:"")+'</td></tr></table>';
+  }).join("");
+}
+function _scrapeTrendKpis(){
+  return Array.from(document.querySelectorAll("#trendKpis .kpi")).map(function(k){
+    return '<td style="padding:10px;border:1px solid #E8E7E2;border-radius:10px;text-align:center;font-family:Arial,sans-serif;background:#fff;width:25%"><div style="font-size:10.5px;color:#6E6B63;text-transform:uppercase;letter-spacing:.3px">'+_t(k.querySelector(".kpi-lbl"))+'</div><div style="font-size:22px;font-weight:700;margin:3px 0;color:#1E1E1E">'+_t(k.querySelector(".kpi-val"))+'</div><div style="font-size:10px;color:#989898">'+_t(k.querySelector(".kpi-foot"))+'</div></td>';
+  }).join("");
+}
+function _execEmailHtml(){
+  var A=DATA.filter(function(x){return x.b==="active";});
+  var over=A.filter(isOverdue), prog=A.filter(function(x){return x.st==="Em andamento";}),
+      ajuste=A.filter(function(x){return x.st==="Ajustes";}), aprov=A.filter(function(x){return x.st===AGUARD;}),
+      noass=A.filter(function(x){return x.as==="—";});
+  var st=_by(A,function(x){return x.st;}), pr=_by(A,function(x){return x.pr;}),
+      resp=_by(A,function(x){return x.as;}), esp=_by(A,function(x){return x.pj;}),
+      espTot=_by(DATA,function(x){return x.pj;});
+  var T=A.length;
+  var STC={"Em andamento":"#2F7FE0","Aguardando Aprovação":"#8B5CF6","Concluído":"#2E9E5B","Backlog":"#B6B2A8","Ajustes":"#E8920C","Tarefas pendentes":"#8A94A6","Programação Redes Sociais":"#5B6B8C"};
+  function stc(k){return STC[k]||"#5B6B8C";}
+  var PRC={Highest:"#D64533",High:"#E8920C",Medium:"#5B6B8C",Low:"#A8A49B",Lowest:"#A8A49B"};
+  function h3(t){return '<h3 style="font-family:Arial,sans-serif;font-size:14px;margin:20px 0 6px;color:#1E1E1E">'+t+'</h3>';}
+  var html=''
+  +'<div style="max-width:720px;margin:0 auto;background:#F4F4F1;padding:0 0 22px">'
+  +'<div style="background:#1E1E1E;border-bottom:3px solid #FCD013;padding:16px 20px;color:#fff;font-family:Arial,sans-serif">'
+  +'<div style="font-size:18px;font-weight:700">Connect-<span style="color:#FCD013">IN</span> · Visão Executiva</div>'
+  +'<div style="font-size:11px;color:#9b988f;letter-spacing:1.4px;margin-top:3px">PAINEL GERENCIAL JIRA · '+SNAP_TS+'</div>'
+  +'<div style="margin-top:12px"><a href="'+FULL_DASH+'" style="display:inline-block;background:#FCD013;color:#1E1E1E;font-weight:700;text-decoration:none;padding:10px 18px;border-radius:8px;font-family:Arial,sans-serif;font-size:13px">📊 Abrir dashboard completo</a></div>'
+  +'</div>'
+  +'<div style="padding:16px 20px">'
+  +'<table style="width:100%;border-collapse:separate;border-spacing:8px"><tr>'
+  +_kcell(T,"Ativas no escopo","#FCD013")+_kcell(over.length,"Atrasadas","#D64533")+_kcell(prog.length,"Em andamento","#2F7FE0")
+  +'</tr><tr>'
+  +_kcell(ajuste.length,"Em ajustes","#E8920C")+_kcell(aprov.length,"Aguard. aprovação","#8B5CF6")+_kcell(noass.length,"Sem responsável","#8A94A6")
+  +'</tr></table>'
+  +h3("🧭 Leitura executiva &amp; ações sugeridas")+_scrapeInsights("#insights")
+  +h3("Distribuição por situação")+st.map(function(e){return _bar(e[0],e[1],T,stc(e[0]));}).join("")
+  +h3("Por prioridade")+pr.map(function(e){return _bar(e[0],e[1],T,PRC[e[0]]||"#5B6B8C");}).join("")
+  +h3("Carga por responsável (top 8)")+_barlist(resp,T,"#2F7FE0",function(k){return k==="—"?"Sem resp.":k;})
+  +h3("Concentração por espaço — em aberto (top 8)")+_barlist(esp,T,"#2E9E5B")
+  +h3("Total por espaço — histórico (top 8)")+_barlist(espTot,DATA.length,"#8A94A6")
+  +h3("📈 Tendências e comparativos")
+  +'<table style="width:100%;border-collapse:separate;border-spacing:6px;margin-bottom:2px"><tr>'+_scrapeTrendKpis()+'</tr></table>'
+  +_scrapeInsights("#trendInsights")
+  +'<div style="background:#1E1E1E;color:#fff;padding:14px 18px;border-radius:10px;margin-top:20px;font-family:Arial,sans-serif;font-size:13px">📊 Dashboard completo no navegador: <b style="color:#FCD013">Documents/Claude (IA)/Connect-IN_Dashboard_Completo.html</b> (salve como favorito). Versão ao vivo no card &ldquo;Connect Atividades Jira&rdquo; no Cowork.</div>'
+  +'</div></div>';
+  return {html:html, T:T, over:over.length, aprov:aprov.length};
+}
+async function _gerarEmailExec(btn){
+  try{
+    btn.textContent="⏳ Gerando…"; btn.disabled=true;
+    var _sv={resp:state.resp,esp:state.esp};
+    state.resp="__all__"; state.esp="__all__"; renderExec();
+    var r=_execEmailHtml();
+    state.resp=_sv.resp; state.esp=_sv.esp; renderExec();
+    var now=new Date(); var p=function(n){return String(n).padStart(2,"0");};
+    var subj="📊 Resumo Executivo Jira · Connect-IN — "+p(now.getDate())+"/"+p(now.getMonth()+1)+"/"+now.getFullYear()+" "+p(now.getHours())+"h"+p(now.getMinutes())+" | "+r.T+" ativas · "+r.over+" atrasadas · "+r.aprov+" aguardando aprovação";
+    var res=await window.cowork.callMcpTool(GMAIL_TOOL,{to:MAIL_TO,subject:subj,htmlBody:r.html,body:"Resumo Executivo Jira (Connect-IN): "+r.T+" ativas, "+r.over+" atrasadas, "+r.aprov+" aguardando aprovacao. Dashboard completo: Documents/Claude (IA)/Connect-IN_Dashboard_Completo.html"});
+    if(res&&res.isError) throw new Error((res.content&&res.content[0]&&res.content[0].text)||"erro do Gmail");
+    btn.textContent="✅ Rascunho criado (2 destinatários)"; setTimeout(function(){btn.textContent="📧 Resumo executivo por e-mail"; btn.disabled=false;},4500);
+  }catch(e){ btn.textContent="📧 Resumo executivo por e-mail"; btn.disabled=false; alert("Não foi possível criar o rascunho: "+((e&&e.message)||e)); }
+}
+function _mountEmailBtn(){
+  if(document.getElementById("_emailbtn")) return;
+  var b=document.createElement("button"); b.id="_emailbtn"; b.textContent="📧 Resumo executivo por e-mail";
+  b.style.cssText="position:fixed;right:18px;bottom:18px;z-index:9000;background:#1E1E1E;color:#fff;border:2px solid #FCD013;border-radius:24px;padding:11px 18px;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;box-shadow:0 6px 20px rgba(0,0,0,.18)";
+  b.onclick=function(){_gerarEmailExec(b);};
+  document.body.appendChild(b);
+}
+
+/* ====== MODO PÁGINA PÚBLICA: busca dados ao vivo do backend (Cloudflare Worker) ====== */
+const WORKER_URL="https://connectin-jira-proxy.ffariasmix.workers.dev/";
+async function bootFromWorker(){
+  try{
+    _overlay('<div><div style="font-size:15px;font-weight:600;margin-bottom:6px;">Carregando dados do Jira…</div><div style="font-size:11.5px;color:#9a958a;margin-top:8px;">Connect-IN · ao vivo</div></div>');
+    const r=await fetch(WORKER_URL+"?t="+Date.now(),{cache:"no-store"});
+    const j=await r.json();
+    if(j.error) throw new Error(j.error);
+    DATA=j.data||[]; LOGDATA=j.log||[];
+    _hideov(); boot();
+    var sd=document.getElementById("snapdate"); if(sd&&j.stamp) sd.textContent=j.stamp;
+    _mountRefreshBtn();
+  }catch(e){
+    _overlay('<div style="max-width:460px"><div style="font-size:15px;font-weight:700;margin-bottom:8px;color:#C0492B;">Não foi possível carregar o Jira</div><div style="font-size:13px;line-height:1.5;">'+((e&&e.message)||e)+'</div><div style="font-size:11.5px;color:#9a958a;margin-top:10px;">Tente o botão 🔄 Atualizar. Se persistir, me avise.</div></div>');
+    _mountRefreshBtn();
+  }
+}
+function _mountRefreshBtn(){
+  if(document.getElementById("_refreshbtn")) return;
+  var b=document.createElement("button"); b.id="_refreshbtn"; b.textContent="🔄 Atualizar";
+  b.style.cssText="position:fixed;right:18px;bottom:18px;z-index:9000;background:#1E1E1E;color:#fff;border:2px solid #FCD013;border-radius:24px;padding:11px 18px;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;box-shadow:0 6px 20px rgba(0,0,0,.18)";
+  b.onclick=function(){ b.textContent="⏳ Atualizando…"; b.disabled=true; bootFromWorker().finally(function(){ b.textContent="🔄 Atualizar"; b.disabled=false; }); };
+  document.body.appendChild(b);
+}
+function bootEntry(){
+  if(window.cowork && typeof window.cowork.callMcpTool==="function"){ bootLive(); }
+  else { bootFromWorker(); }
+}
+if(document.readyState==="loading"){ document.addEventListener("DOMContentLoaded",bootEntry); }
+else { bootEntry(); }
+
+</script>
+</body>
+</html>
